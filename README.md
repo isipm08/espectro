@@ -36,11 +36,17 @@ según personas
 - pantalla completa
 - activar sonido
 - modo disparo > escáner > funcione para video/ cámara > estirar video o poder manipularlo
-
-- sonido
+- quitar visualización, detección, mapping, midi
+- teclas (quitar columnas y filas) se llamará escala
+- sonido (mantener todo por ahora) -- se cambiará lo de las opciones de ondas 
 - teclas > nota base y escala
 - dejar como segunda función integrar la cámara en vivo y en directo, dejar primera opción la integración de videos pre grabados (fuente)
-- modo disparo > escaner
+- modo disparo > escaner > cantidad personas
+- grabar y descargar
+- señal (dejarlo visible en la parte de arriba) qué pasa con tu video > dejar opción notas acá en forma de visualización (quizá nombrarlo monitor)
+- sacar parte inferior abajo (pero dejar "líneas)
+- sacar apartado ejemplo
+- dejar solo frecuencia en la parte inferior izquierda
 
 ## Qué vamos a integrar en nuestra web:
 Que la plataforma se enfoque principalmente en identificar elementos en videos montados, con la intención de abordar a más profundidad.
