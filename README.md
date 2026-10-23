@@ -35,7 +35,7 @@ según personas
 ## Qué vamos a mantener de *Oír la luz*:
 - sonido
 - teclas > nota base y escala
-- dejar como segunda función integrar la cámara en vivo y en directo, dejar primera opción la integración de videos pre grabados
+- dejar como segunda función integrar la cámara en vivo y en directo, dejar primera opción la integración de videos pre grabados (fuente)
 - modo disparo > escaner
 
 ## Qué vamos a integrar en nuestra web:
@@ -55,8 +55,18 @@ El sistema integrará la herramienta OpenCV, y esta identificará:
 
 ## Requisitos tareas
 - banco sonidos junto con disparador visual
-- qué fenómeno de la imagen escuchamos, con qué sonido lo representamos y qué relación construimos entre ambos.
+- qué fenómeno de la imagen escuchamos, con qué sonido lo representamos y qué relación construimos entre ambos. > emociones
+- relación imagen sonido
+- banco sonidos: 5 - 15 sonidos
+- disparador visual:
+- parámetros: 
+- cambia grafica página
+- publicar página github pages
 
-
+## README estructura
+- Concepto y relación imagen–sonido. ¿Qué relación propones y por qué? ¿Es de semejanza, de contraste o de traducción? ¿Qué quieres que la persona escuche que antes no escuchaba?
+- Banco de sonidos y disparador. Qué sonidos usaste, de dónde vienen y cómo los elegiste o grabaste. Qué fenómeno de la imagen los dispara y con qué regla (el mapping). Incluye una tabla con los sonidos, su autor y su licencia.
+- Parámetros y gráfica. Qué parámetros del sonido se pueden modificar y por qué esos y no otros. Qué decisiones gráficas tomaste (tipografía, color, visualización) y cómo se relacionan con el concepto. Incluye dos o tres capturas.
+- Reflexión. ¿Qué descubriste al traducir imagen en sonido? ¿Qué queda fuera de la escucha de tu sistema? Propón al menos dos mejoras concretas para tu plataforma.
 ## Links
 <https://opencv.org/about/>
