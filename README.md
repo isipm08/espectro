@@ -33,19 +33,30 @@ según personas
 ```
 
 ## Qué vamos a mantener de *Oír la luz*:
+- sonido
+- teclas > nota base y escala
+- dejar como segunda función integrar la cámara en vivo y en directo, dejar primera opción la integración de videos pre grabados
+- modo disparo > escaner
 
 ## Qué vamos a integrar en nuestra web:
-
 Que la plataforma se enfoque principalmente en identificar elementos en videos montados, con la intención de abordar a más profundidad.
 
 El sistema integrará la herramienta OpenCV, y esta identificará:
+- Integrar según cantidad personas > expresiones faciales > emociones > colores > pentatonicas
+- personas suman = alteran frecuencia en ciertos aspectos
+- emociones agregan sonido en escala
+- colores suman RGB, forma de onda 
 
-- Cantidad de personas
-- Emociones identificadas en las personas
 
-Una función secundaria será integrar cámara, para ocupar la herramienta en vivo y en directo
+*Notas libres:*
 
-Notas libres:
+- Jugar con una temática intima, como emociones y relación con las personas.
+- Por ejemplo: el metro, muchas personas, la incomodidad de no conocer a nadie, un ambiente de tensión.
 
-Jugar con una temática intima, como emociones y relación con las personas. 
-Por ejemplo: el metro, muchas personas, la incomodidad de no conocer a nadie, un ambiente de tensión.
+## Requisitos tareas
+- banco sonidos junto con disparador visual
+- qué fenómeno de la imagen escuchamos, con qué sonido lo representamos y qué relación construimos entre ambos.
+
+
+## Links
+<https://opencv.org/about/>
