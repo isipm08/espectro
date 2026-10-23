@@ -33,6 +33,10 @@ según personas
 ```
 
 ## Qué vamos a mantener de *Oír la luz*:
+- pantalla completa
+- activar sonido
+- modo disparo > escáner > funcione para video/ cámara > estirar video o poder manipularlo
+
 - sonido
 - teclas > nota base y escala
 - dejar como segunda función integrar la cámara en vivo y en directo, dejar primera opción la integración de videos pre grabados (fuente)
@@ -58,7 +62,7 @@ El sistema integrará la herramienta OpenCV, y esta identificará:
 - qué fenómeno de la imagen escuchamos, con qué sonido lo representamos y qué relación construimos entre ambos. > emociones
 - relación imagen sonido
 - banco sonidos: 5 - 15 sonidos
-- disparador visual:
+- disparador visual: emitir sonido, cantidad personas
 - parámetros: 
 - cambia grafica página
 - publicar página github pages
