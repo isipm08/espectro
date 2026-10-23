@@ -54,6 +54,7 @@ El sistema integrará la herramienta OpenCV, y esta identificará:
 
 *Notas libres:*
 
+- modo de disparo: cada que identique x elemento (por ahora tenemos solo personas, si queremos agregar más, ahí vemos sumamos elementos)
 - Jugar con una temática intima, como emociones y relación con las personas.
 - Por ejemplo: el metro, muchas personas, la incomodidad de no conocer a nadie, un ambiente de tensión.
 
