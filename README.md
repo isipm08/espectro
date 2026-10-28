@@ -1,4 +1,4 @@
-# personas
+# Espectro
 ### Integrantes
 ☆ Isidora Pérez
 
