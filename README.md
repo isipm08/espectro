@@ -1,8 +1,64 @@
-# Espectro
+# T06 DPPI
 ### Integrantes
 ☆ Isidora Pérez
 
 ☆ Dayana Pañitrur
+
+## Espectro
+- Concepto y relación imagen–sonido. ¿Qué relación propones y por qué? ¿Es de semejanza, de contraste o de traducción? ¿Qué quieres que la persona escuche que antes no escuchaba?
+
+RELLENAR MÁS
+  
+Espectro según Wikipedia es "una condición que no se limita a un conjunto específico de valores, sino que puede variar, sin pasos, a través de un continuo".
+Este concepto no se mantuvo exclusivo de la ciencia física. A lo largo de los siglos se ha ido integrando a distintas áreas disciplinares, como las ciencias sociales, ciencias políticas, entre muchas otras más.
+
+El espectro visible para el humano se encuentra entre los 380 y los 750 nanómetros (nm) de longitud de onda.
+
+El espectro que percibe un oído humano está ubicado entre los 20 Hz y los 20 000 Hz (20 kHz)
+
+Y en el ámbito de la psicología, ------
+
+Nuestro proyecto es capaz de convertir la expresión facial visible en una composición visual en tiempo real. La relación imagen-sonido es una traducción simbólica, la cual una emoción es transformada en color y luego a un sonido representativo de tal emoción. 
+
+Trabajamos con 3 espectros, los cuales son:
+
+```Espectro visible``` rostro recibe color asociado a la emoción la cual estima el sistema
+
+```Espectro sonoro``` se define la escala, registro, timbre, ritmo y efectos, donde las notas se sintetizan en el momento
+
+```Espectro visual``` el monitor es capaz de mostrar las formas de onda, armónicos y envolventes mediante la emoción, donde el sonido se vuelve visible
+
+### Banco sonidos
+Banco de sonidos y disparador. Qué sonidos usaste, de dónde vienen y cómo los elegiste o grabaste. Qué fenómeno de la imagen los dispara y con qué regla (el mapping). Incluye una tabla con los sonidos, su autor y su licencia.
+
+### Funcionamiento
+1. Realizar la carga de video o activar cámara.
+2. El detector de forma automática hace el reconocimiento de rostros, en donde se clasifican según expresión facial: neutral, alegría, tristeza, enojo, miedo, asco y sorpresa.
+3. Cada rostro recibe color y receta sonora según emoción actual.
+4. El escáner recorre la imagen de izquierda a derecha o también se posiciona de forma manual, donde dispara notas.
+   
+### Parámetros
+- Parámetros y gráfica. Qué parámetros del sonido se pueden modificar y por qué esos y no otros. Qué decisiones gráficas tomaste (tipografía, color, visualización) y cómo se relacionan con el concepto. Incluye dos o tres capturas.
+
+RELLENAR MÁS 
+
+| Sonido / emoción | Color en pantalla | Escala asignada | Timbre sintetizado | Autor de la receta y licencia |
+|---|---|---|---|---|
+| Neutral | Blanco frío `#EEF0FF` | Pentatónica mayor | Onda personalizada con parciales | Laboratorio de Sonido / equipo del proyecto; autoría individual y licencia por confirmar |
+| Alegría | Lima `#E2FF3B` | Lidia | Onda personalizada rica en armónicos | Laboratorio de Sonido / equipo del proyecto; autoría individual y licencia por confirmar |
+| Tristeza | Azul `#6A8CFF` | Eólica | Senoidal | Laboratorio de Sonido / equipo del proyecto; autoría individual y licencia por confirmar |
+| Enojo | Coral `#FF4D6D` | Frigia | Diente de sierra | Laboratorio de Sonido / equipo del proyecto; autoría individual y licencia por confirmar |
+| Miedo | Violeta `#9A7BFF` | Octatónica | Senoidal FM | Laboratorio de Sonido / equipo del proyecto; autoría individual y licencia por confirmar |
+| Asco | Verde `#7BD88F` | Locria | Cuadrada | Laboratorio de Sonido / equipo del proyecto; autoría individual y licencia por confirmar |
+| Sorpresa | Cian `#5CE1E6` | Tonos enteros | Senoidal AM | Laboratorio de Sonido / equipo del proyecto; autoría individual y licencia por confirmar |
+
+### Activación
+
+### Decisiones gráficas
+- Parámetros y gráfica. Qué parámetros del sonido se pueden modificar y por qué esos y no otros. Qué decisiones gráficas tomaste (tipografía, color, visualización) y cómo se relacionan con el concepto. Incluye dos o tres capturas.
+
+### Reflexión
+- Reflexión. ¿Qué descubriste al traducir imagen en sonido? ¿Qué queda fuera de la escucha de tu sistema? Propón al menos dos mejoras concretas para tu plataforma.
 
 - entender el sonido como una traducción del diseño
 - qué fenómeno escuchamos
@@ -56,21 +112,7 @@ El sistema integrará la herramienta OpenCV, y esta identificará:
 - emociones agregan sonido en escala
 - colores suman RGB, forma de onda 
 
-## README estructura
-- Concepto y relación imagen–sonido. ¿Qué relación propones y por qué? ¿Es de semejanza, de contraste o de traducción? ¿Qué quieres que la persona escuche que antes no escuchaba?
 
-Espectro según Wikipedia es "una condición que no se limita a un conjunto específico de valores, sino que puede variar, sin pasos, a través de un continuo".
-Este concepto no se mantuvo exclusivo de la ciencia física. A lo largo de los siglos se ha ido integrando a distintas áreas disciplinares, como las ciencias sociales, ciencias políticas, entre muchas otras más.
-
-El espectro visible para el humano se encuentra entre los 380 y los 750 nanómetros (nm) de longitud de onda.
-
-El espectro que percibe un oído humano está ubicado entre los 20 Hz y los 20 000 Hz (20 kHz)
-
-Y en el ámbito de la psicología, ------
-
-- Banco de sonidos y disparador. Qué sonidos usaste, de dónde vienen y cómo los elegiste o grabaste. Qué fenómeno de la imagen los dispara y con qué regla (el mapping). Incluye una tabla con los sonidos, su autor y su licencia.
-- Parámetros y gráfica. Qué parámetros del sonido se pueden modificar y por qué esos y no otros. Qué decisiones gráficas tomaste (tipografía, color, visualización) y cómo se relacionan con el concepto. Incluye dos o tres capturas.
-- Reflexión. ¿Qué descubriste al traducir imagen en sonido? ¿Qué queda fuera de la escucha de tu sistema? Propón al menos dos mejoras concretas para tu plataforma.
 
 ## Criterios de evaluación
 - Claridad y solidez del concepto.
@@ -81,3 +123,4 @@ Y en el ámbito de la psicología, ------
 - Profundidad del README y la reflexión.
 ## Links
 <https://opencv.org/about/>
+<https://es.wikipedia.org/wiki/Espectro>
