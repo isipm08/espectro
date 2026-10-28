@@ -1,0 +1,1264 @@
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const NAMES = ["Do", "Do#", "Re", "Re#", "Mi", "Fa", "Fa#", "Sol", "Sol#", "La", "La#", "Si"];
+  const SCALES = {
+    // escalas originales
+    pmaj: [0, 2, 4, 7, 9],              // pentatónica mayor · neutral
+    pmin: [0, 3, 5, 7, 10],             // pentatónica menor
+    maj: [0, 2, 4, 5, 7, 9, 11],        // mayor (jónico)
+    chr: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], // cromática
+    // escalas asociadas a emociones
+    lyd: [0, 2, 4, 6, 7, 9, 11],        // lidio · alegría
+    aeo: [0, 2, 3, 5, 7, 8, 10],        // eólico (menor natural) · tristeza
+    phr: [0, 1, 3, 5, 7, 8, 10],        // frigio · enojo
+    oct: [0, 1, 3, 4, 6, 7, 9, 10],     // octatónica semitono–tono · miedo
+    loc: [0, 1, 3, 5, 6, 8, 10],        // locrio · asco
+    whole: [0, 2, 4, 6, 8, 10],         // tonos enteros · sorpresa
+  };
+  // ===== RECETAS DE SONIDO POR EMOCIÓN (vienen del Laboratorio de sonido) =====
+  // Cada receta dice: qué escala, desde qué nota y octava, qué forma de onda (timbre),
+  // cómo nace y muere la nota (envolvente) y cuánto filtro, resonancia, vibrato, eco y reverb lleva.
+  // Las claves (neutral, happy…) son las mismas etiquetas que entrega el detector de rostros.
+  // every = cada cuántas semicorcheas puede tocar una voz (ritmo) · prob = probabilidad de tocar en ese pulso
+  // color = color con que se dibuja el rostro en pantalla
+  const EMO_PRESETS = {
+    neutral:   { name: "Neutral",  scale: "pmaj",  root: 0,  oct: 4, wave: "custom", partials: [1, 0.3, 0.12], atk: 0.05, dec: 0.25, sus: 0.5, rel: 1.2, cut: 3000, q: 1, vib: 0, delay: 0, rev: 0.3, every: 4, prob: 0.7, color: "#EEF0FF" },
+    happy:     { name: "Alegría",  scale: "lyd",   root: 7,  oct: 5, wave: "custom", partials: [1, 0.55, 0.4, 0.25, 0.15, 0.08], atk: 0.01, dec: 0.15, sus: 0.35, rel: 0.7, cut: 6500, q: 1.5, vib: 0, delay: 0.25, rev: 0.25, every: 2, prob: 0.7, color: "#E2FF3B" },
+    sad:       { name: "Tristeza", scale: "aeo",   root: 9,  oct: 3, wave: "sine", atk: 0.45, dec: 0.6, sus: 0.6, rel: 3, cut: 1400, q: 0.7, vib: 0.08, delay: 0.3, rev: 0.6, every: 8, prob: 0.8, color: "#6A8CFF" },
+    angry:     { name: "Enojo",    scale: "phr",   root: 4,  oct: 3, wave: "fatsawtooth", atk: 0.004, dec: 0.12, sus: 0.3, rel: 0.3, cut: 2400, q: 7, vib: 0, delay: 0, rev: 0.12, every: 1, prob: 0.45, color: "#FF4D6D" },
+    fearful:   { name: "Miedo",    scale: "oct",   root: 1,  oct: 4, wave: "fmsine", atk: 0.35, dec: 0.4, sus: 0.5, rel: 2.6, cut: 1000, q: 3, vib: 0.35, delay: 0.45, rev: 0.55, every: 3, prob: 0.5, color: "#9A7BFF" },
+    disgusted: { name: "Asco",     scale: "loc",   root: 11, oct: 3, wave: "square", atk: 0.06, dec: 0.3, sus: 0.4, rel: 0.9, cut: 650, q: 9, vib: 0.18, delay: 0.1, rev: 0.2, every: 4, prob: 0.5, color: "#7BD88F" },
+    surprised: { name: "Sorpresa", scale: "whole", root: 2,  oct: 5, wave: "amsine", atk: 0.002, dec: 0.2, sus: 0.2, rel: 1.6, cut: 8000, q: 1, vib: 0, delay: 0.35, rev: 0.45, every: 2, prob: 0.6, color: "#5CE1E6" },
+  };
+  const SCALE_NAME = { pmaj: "pentatónica mayor", pmin: "pentatónica menor", maj: "mayor", chr: "cromática", lyd: "lidio",
+    aeo: "eólico", phr: "frigio", oct: "octatónica", loc: "locrio", whole: "tonos enteros" };
+  const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  const noteName = (m) => NAMES[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
+
+  const S = { src: "file", view: "mix", cols: 5, rows: 3, scale: "pmaj", root: 48, thr: 28, sens: 0.03, cool: 320,
+    wave: "triangle", atk: 0.008, rel: 0.7, cut: 12000, rev: 0.3, vol: 0.6,
+    dec: 0.08, sus: 0.6, q: 0.8, vib: 0, delay: 0, partials: [1, 0.5, 0.33], emo: "",
+    bars: true, emoForce: "", people: 0, tension: 0, warmth: 0, rgb: [0, 0, 0],
+    // v05: reacción a la emoción (ms), confianza mínima y tamaño de imagen del detector
+    react: 250, esens: 0.45, detSize: 224,
+    mapVel: true, mapPan: true, mirror: true,
+    cmin: 0.15, smin: 0.35,   // v08: escáner de color · cobertura mínima de color en una celda y saturación mínima
+    tint: 0.22, veil: 0, lines: true, notes: true, parts: true,
+    mode: "escaner", lx: 0.5, nl: 3, segs: 7, sdur: 6, steps: 16, bright: 90, mapDir: false, invert: false };
+
+  // voces del modo "Varias líneas": cada línea trae su forma de onda, envolvente, octava y filtro
+  const VOICES = [
+    { name: "golpe", wave: "square", atk: 0.003, rel: 0.18, oct: 12, cut: 5000, color: "#E2FF3B", ej: "ave.wav" },
+    { name: "estela", wave: "sine", atk: 0.09, rel: 2.4, oct: 0, cut: 0, color: "#EEF0FF", ej: "auto.wav" },
+    { name: "lejano", wave: "sawtooth", atk: 0.02, rel: 1.0, oct: -12, cut: 650, color: "#9A7BFF", ej: "lluvia.wav" },
+    { name: "brillo", wave: "triangle", atk: 0.002, rel: 0.6, oct: 24, cut: 0, color: "#5CE1E6", ej: "campana.wav" },
+  ];
+  const rgba = (hex, a) => "rgba(" + parseInt(hex.slice(1, 3), 16) + "," + parseInt(hex.slice(3, 5), 16) + "," + parseInt(hex.slice(5, 7), 16) + "," + a.toFixed(3) + ")";
+
+  let toastT = 0;
+  function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2600); }
+
+  // ================= dock =================
+  document.querySelectorAll(".trigger").forEach((tr) => tr.addEventListener("click", () => {
+    const id = tr.dataset.panel, open = tr.getAttribute("aria-expanded") === "true";
+    document.querySelectorAll(".trigger").forEach((t) => { t.setAttribute("aria-expanded", "false"); $(t.dataset.panel).hidden = true; });
+    if (!open) { tr.setAttribute("aria-expanded", "true"); $(id).hidden = false; }
+  }));
+  document.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => {
+    const p = b.closest(".panel"); p.hidden = true; document.querySelector('[data-panel="' + p.id + '"]').setAttribute("aria-expanded", "false");
+  }));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.querySelectorAll("[data-close]").forEach((b) => { if (!b.closest(".panel").hidden) b.click(); }); });
+
+  // ================= fuentes =================
+  const video = document.createElement("video");
+  video.muted = true; video.loop = true; video.playsInline = true;
+  let stream = null;
+  const demo = document.createElement("canvas"); demo.width = 640; demo.height = 360;
+  const dctx = demo.getContext("2d");
+  const lanes = [0.22, 0.5, 0.78], cars = [];
+  for (let i = 0; i < 7; i++) {
+    const lane = i % 3;
+    cars.push({ lane, x: Math.random() * 640, v: (lane === 1 ? -1 : 1) * (90 + Math.random() * 160), w: 60 + Math.random() * 70, c: ["#E2FF3B", "#EEF0FF", "#6A6AFF", "#9A7BFF"][i % 4] });
+  }
+  let birdT = 0;
+  function drawDemo(dt) {
+    dctx.fillStyle = "#0B0C2C"; dctx.fillRect(0, 0, 640, 360);
+    dctx.fillStyle = "#16184E"; lanes.forEach((y) => dctx.fillRect(0, y * 360 - 34, 640, 68));
+    dctx.strokeStyle = "rgba(238,240,255,.18)"; dctx.setLineDash([18, 16]); dctx.lineWidth = 2;
+    [0.36, 0.64].forEach((y) => { dctx.beginPath(); dctx.moveTo(0, y * 360); dctx.lineTo(640, y * 360); dctx.stroke(); });
+    dctx.setLineDash([]);
+    for (const c of cars) {
+      c.x += c.v * dt;
+      if (c.v > 0 && c.x > 700) { c.x = -c.w - Math.random() * 200; c.v = 90 + Math.random() * 160; }
+      if (c.v < 0 && c.x < -c.w - 60) { c.x = 640 + Math.random() * 200; c.v = -(90 + Math.random() * 160); }
+      dctx.fillStyle = c.c; dctx.fillRect(c.x, lanes[c.lane] * 360 - 24, c.w, 48);
+    }
+    birdT += dt;
+    dctx.fillStyle = "#EEF0FF"; dctx.beginPath(); dctx.arc((birdT * 70) % 760 - 60, 40 + Math.sin(birdT * 2.2) * 18, 7, 0, Math.PI * 2); dctx.fill();
+  }
+
+  function setSrc(src, status) {
+    S.src = src; prev = null; clearFaces();
+    const demoButton = $("srcDemo");
+    if (demoButton) demoButton.setAttribute("aria-pressed", String(src === "demo"));
+    $("srcCam").setAttribute("aria-pressed", String(src === "cam" || src === "camoff"));
+    $("srcFile").setAttribute("aria-pressed", String(src === "file"));
+    $("camCtx").hidden = !(src === "cam" || src === "camoff");
+    $("vidCtx").hidden = src !== "file";
+    $("camOff").textContent = src === "camoff" ? "Encender cámara" : "Apagar cámara";
+    $("status").textContent = status;
+    $("videoPrompt").hidden = src === "cam" || (src === "file" && video.readyState >= 2);
+  }
+  function stopStream() { if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; } }
+  async function startCam() {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("sin API");
+      stopStream(); video.pause(); video.removeAttribute("src");
+      stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 360 }, audio: false });
+      video.srcObject = stream; await video.play();
+      setSrc("cam", "Fuente: cámara");
+    } catch (e) {
+      toast("Esta vista no permite usar la cámara: abre la versión local o la de GitHub Pages");
+      $("status").textContent = "Cámara bloqueada en esta vista · versión local (localhost) o GitHub Pages";
+      $("videoPrompt").hidden = false;
+    }
+  }
+  $("srcCam").addEventListener("click", startCam);
+  $("camOff").addEventListener("click", () => {
+    if (S.src === "cam") { stopStream(); video.srcObject = null; setSrc("camoff", "Cámara apagada"); }
+    else startCam();
+  });
+  $("srcFile").addEventListener("click", () => $("fileInput").click());
+  $("selectVideo").addEventListener("click", () => $("fileInput").click());
+  $("vChange").addEventListener("click", () => $("fileInput").click());
+  $("fileInput").addEventListener("change", async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    stopStream(); video.srcObject = null; video.src = URL.createObjectURL(f); video.loop = $("vLoop").getAttribute("aria-pressed") === "true";
+    try { await video.play(); } catch (_) {}
+    setSrc("file", "Fuente: " + f.name);
+    e.target.value = "";
+  });
+  $("vPlay").addEventListener("click", () => { video.play().catch(() => {}); });
+  $("vPause").addEventListener("click", () => video.pause());
+  $("vLoop").addEventListener("click", (e) => {
+    video.loop = !video.loop; e.currentTarget.setAttribute("aria-pressed", String(video.loop));
+    toast(video.loop ? "Loop activado" : "Loop desactivado");
+  });
+
+  // ================= capas =================
+  function bindToggle(id, key, after) {
+    $(id).addEventListener("click", (e) => { S[key] = !S[key]; e.currentTarget.setAttribute("aria-pressed", String(S[key])); if (after) after(); updVisState(); });
+  }
+  function updVisState() {
+    const on = [S.lines && "líneas", S.notes && "notas", S.parts && "partíc."].filter(Boolean);
+    $("stVis").textContent = S.view === "mask" ? "máquina" : on.length ? on.length + " capas" : "solo video";
+  }
+  bindToggle("tLines", "lines"); bindToggle("tBars", "bars"); bindToggle("tNotes", "notes"); bindToggle("tParts", "parts", () => { parts.length = 0; });
+  $("tSignal").addEventListener("click", (e) => { const on = $("signal").hidden; $("signal").hidden = !on; e.currentTarget.setAttribute("aria-pressed", String(on)); });
+  $("sigHide").addEventListener("click", () => { $("signal").hidden = true; $("tSignal").setAttribute("aria-pressed", "false"); });
+
+  // ================= audio (motor: Tone.js) =================
+  // v02: cada nota se armaba a mano con la Web Audio API (un oscilador nuevo por nota).
+  // v03: un solo instrumento de Tone.js toca todas las notas y su sonido pasa por esta cadena:
+  //   synth → panner → vibrato → filtro → eco → reverb → master (volumen) → limitador → parlantes
+  //   v04: además, cada rostro tiene SU PROPIA VOZ (ver sección "rostros"). Todo se junta en el bus:
+  //   voces de rostros + sintetizador general + murmullo → bus → filtro de tensión → master → limitador → parlantes
+  let ac = null, synth, panner, vibrato, filter, delay, reverb, master, analyser, recDest, shape;
+  let bus, tensionFilter, fxDelay, fxRev, revReturn, noise, noiseGain, clock;
+  const transport = () => (Tone.getTransport ? Tone.getTransport() : Tone.Transport);
+  const drawer = () => (Tone.getDraw ? Tone.getDraw() : Tone.Draw);
+
+  // traduce S.wave a las opciones de oscilador que entiende Tone.js
+  function oscFrom(p) {
+    if (p.wave === "custom") return { type: "custom", partials: (p.partials || [1]).slice() };
+    if (p.wave === "fatsawtooth") return { type: "fatsawtooth", count: 3, spread: 30 };
+    return { type: p.wave };
+  }
+  function oscOpts() { return oscFrom(S); }
+  // se ejecuta una sola vez, al primer clic en "Activar sonido": arma la cadena
+  async function initAudio() {
+    await Tone.start();                                    // el navegador exige un clic antes de sonar
+    Tone.getContext().lookAhead = 0.03;                    // v05: Tone programa las notas 0,03 s antes (por defecto 0,1 s) → menos latencia
+    ac = Tone.getContext().rawContext;                     // contexto de audio que usan la grabación y los medidores
+    synth = new Tone.PolySynth(Tone.Synth, { maxPolyphony: 6 });   // v07: máximo 6 notas simultáneas
+    synth.volume.value = -10;
+    panner = new Tone.Panner(0);
+    vibrato = new Tone.Vibrato({ frequency: 5, depth: S.vib });
+    filter = new Tone.Filter({ type: "lowpass", frequency: S.cut, Q: S.q, rolloff: -24 });
+    delay = new Tone.FeedbackDelay({ delayTime: "8n", feedback: 0.35, wet: S.delay });
+    reverb = new Tone.Reverb({ decay: 4, wet: S.rev });
+    master = new Tone.Volume(Tone.gainToDb(Math.max(0.0001, S.vol)));
+    const limiter = new Tone.Limiter(-1);                 // evita que se sature cuando suenan varias notas juntas
+    bus = new Tone.Gain(1);                               // aquí se junta todo lo que suena
+    tensionFilter = new Tone.Filter({ type: "lowpass", frequency: S.cut, Q: 0.5, rolloff: -12 });
+    bus.chain(tensionFilter, master, limiter, Tone.Destination);
+    synth.chain(panner, vibrato, filter, delay, reverb, bus);
+    // eco y reverb compartidos: cada voz de rostro les "envía" la cantidad que dice su receta
+    fxDelay = new Tone.FeedbackDelay({ delayTime: "8n", feedback: 0.35, wet: 1 });
+    fxRev = new Tone.Reverb({ decay: 4, wet: 1 });
+    revReturn = new Tone.Gain(S.rev / 0.3);
+    fxDelay.connect(bus); fxRev.chain(revReturn, bus);
+    // murmullo: ruido rosa que crece con la cantidad de personas
+    noise = new Tone.Noise("pink"); noiseGain = new Tone.Gain(0);
+    noise.chain(new Tone.Filter(700, "bandpass"), noiseGain, bus); noise.start();
+    // reloj: cada semicorchea revisa qué rostros deben tocar (modo Rostros)
+    transport().bpm.value = 84;
+    clock = new Tone.Loop(clockTick, "16n").start(0); transport().start();
+    // medidores (ventana Señal) y salida para grabar
+    shape = ac.createAnalyser(); shape.fftSize = 512; bus.connect(shape);   // v07: búfer más chico (antes 2048)
+    analyser = ac.createAnalyser(); analyser.fftSize = 1024; limiter.connect(analyser);
+    recDest = ac.createMediaStreamDestination(); limiter.connect(recDest);
+    applySound(true);
+  }
+  // copia los valores de S (estado) a los aparatos de sonido. withOsc = también cambia el timbre
+  function applySound(withOsc) {
+    if (!synth) return;
+    const opts = { envelope: { attack: S.atk, decay: S.dec, sustain: S.sus, release: S.rel } };
+    if (withOsc) opts.oscillator = oscOpts();
+    synth.set(opts);
+    filter.frequency.rampTo(S.cut, 0.05); filter.Q.value = S.q;
+    vibrato.depth.rampTo(S.vib, 0.1); delay.wet.rampTo(S.delay, 0.1); reverb.wet.rampTo(S.rev, 0.1);
+    master.volume.rampTo(Tone.gainToDb(Math.max(0.0001, S.vol)), 0.05);
+    tensionFilter.frequency.rampTo(S.cut * (1 - 0.6 * S.tension), 0.3);  // más personas → más opaco
+    revReturn.gain.rampTo(S.rev / 0.3, 0.1);
+  }
+  // TOCA UNA NOTA: midi = altura, vel = intensidad (0–1), pan = izquierda (-1) a derecha (1)
+  function voice(midi, vel, pan) {
+    const hold = 0.06;
+    panner.pan.rampTo(pan, 0.02);
+    synth.triggerAttackRelease(mtof(midi), S.atk + hold, Tone.now() + 0.01, vel);
+    return S.atk + hold + S.rel * 1.6 + 0.1;              // cuánto dura en total (para grabar una nota)
+  }
+  const soundOn = () => ac && ac.state === "running";
+  function updSoundBtn() {
+    const on = soundOn();
+    $("soundBtn").setAttribute("aria-pressed", String(on));
+    $("soundBtn").textContent = on ? "■ Apagar sonido" : "▶ Activar sonido";
+    $("noteDl").disabled = !on || lastMidi == null;
+    $("recBtn").disabled = !on && !recording;
+  }
+  $("soundBtn").addEventListener("click", async () => {
+    if (typeof Tone === "undefined") { toast("No se pudo cargar Tone.js: revisa la conexión"); return; }
+    try {
+      if (!ac) await initAudio();
+      else if (ac.state === "running") await ac.suspend();
+      else await ac.resume();
+    } catch (_) { toast("No se pudo iniciar el audio"); }
+    updSoundBtn();
+  });
+
+  // ================= descargas =================
+  let dlCap;
+  async function downloadsCap() {
+    if (dlCap !== undefined) return dlCap;
+    try { dlCap = window.claude && window.claude.use ? await window.claude.use("downloads") : null; } catch (_) { dlCap = null; }
+    return dlCap;
+  }
+  function wavFromBuffer(buf) {
+    const ch = Math.min(2, buf.numberOfChannels), sr = buf.sampleRate, n = buf.length;
+    const out = new ArrayBuffer(44 + n * ch * 2), v = new DataView(out);
+    const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    w(0, "RIFF"); v.setUint32(4, 36 + n * ch * 2, true); w(8, "WAVE"); w(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+    v.setUint16(22, ch, true); v.setUint32(24, sr, true); v.setUint32(28, sr * ch * 2, true); v.setUint16(32, ch * 2, true); v.setUint16(34, 16, true);
+    w(36, "data"); v.setUint32(40, n * ch * 2, true);
+    const data = []; for (let c = 0; c < ch; c++) data.push(buf.getChannelData(c));
+    let o = 44;
+    for (let i = 0; i < n; i++) for (let c = 0; c < ch; c++) { const s = Math.max(-1, Math.min(1, data[c][i])); v.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7fff, true); o += 2; }
+    return new Blob([out], { type: "audio/wav" });
+  }
+  async function deliver(blob, base) {
+    const cap = await downloadsCap();
+    if (cap) {
+      try { await cap.save({ filename: base + ".webm", data: blob }); toast("Descarga lista"); }
+      catch (e) { toast(e && e.code === "declined" ? "Descarga cancelada" : "No se pudo descargar en esta vista"); }
+      return;
+    }
+    let file = blob, ext = ".webm";
+    try { const buf = await ac.decodeAudioData(await blob.arrayBuffer()); file = wavFromBuffer(buf); ext = ".wav"; } catch (_) {}
+    const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = base + ext;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast("Descargando " + base + ext);
+  }
+  function pickMime() {
+    if (!window.MediaRecorder) return null;
+    for (const m of ["audio/webm;codecs=opus", "audio/webm", "audio/ogg"]) if (MediaRecorder.isTypeSupported(m)) return m;
+    return "";
+  }
+  let recorder = null, recording = false, recChunks = [], recBlob = null, recStart = 0;
+  $("recBtn").addEventListener("click", () => {
+    if (!ac) return;
+    const mime = pickMime();
+    if (mime === null) { $("recHint").textContent = "Este navegador no permite grabar audio."; return; }
+    if (!recording) {
+      recChunks = []; recorder = new MediaRecorder(recDest.stream, mime ? { mimeType: mime } : undefined);
+      recorder.ondataavailable = (e) => { if (e.data.size) recChunks.push(e.data); };
+      recorder.onstop = () => { recBlob = new Blob(recChunks, { type: recorder.mimeType || "audio/webm" }); $("recDl").disabled = false; $("recHint").textContent = "Grabación lista para descargar."; $("stRec").textContent = "lista"; };
+      recorder.start(); recording = true; recStart = performance.now();
+      $("recBtn").setAttribute("aria-pressed", "true"); $("recBtn").textContent = "■ Detener"; $("recBadge").hidden = false; $("stRec").textContent = "grabando";
+    } else {
+      recorder.stop(); recording = false;
+      $("recBtn").setAttribute("aria-pressed", "false"); $("recBtn").textContent = "● Grabar"; $("recBadge").hidden = true;
+    }
+  });
+  $("recDl").addEventListener("click", () => { if (recBlob) deliver(recBlob, "oir-la-luz-grabacion"); });
+  let lastMidi = null;
+  $("noteDl").addEventListener("click", () => {
+    if (!soundOn() || lastMidi == null) return;
+    const mime = pickMime(); if (mime === null) { toast("Este navegador no permite grabar audio"); return; }
+    const rec = new MediaRecorder(recDest.stream, mime ? { mimeType: mime } : undefined), chunks = [];
+    rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    const m = lastMidi;
+    rec.onstop = () => deliver(new Blob(chunks, { type: rec.mimeType || "audio/webm" }), "nota-" + noteName(m).replace("#", "s") + "-" + Math.round(mtof(m)) + "Hz");
+    rec.start(); $("noteDl").disabled = true; toast("Grabando " + noteName(m));
+    const dur = voice(m, 0.9, 0);
+    setTimeout(() => { rec.stop(); updSoundBtn(); }, (dur + 1.4) * 1000);
+  });
+
+  // ================= detección =================
+  const PW = 128, PH = 72;
+  const proc = document.createElement("canvas"); proc.width = PW; proc.height = PH;
+  const pctx = proc.getContext("2d", { willReadFrequently: true });
+  let prev = null; const mask = new Uint8Array(PW * PH);
+  // v07: arreglos creados UNA sola vez y reutilizados en cada análisis (antes se creaban 15 veces por segundo)
+  const gray = new Uint8Array(PW * PH), prevBuf = new Uint8Array(PW * PH);
+  let counts = new Uint32Array(S.cols * S.rows);
+  let energy = [], flash = [], last = [];
+  const parts = [], roll = [];
+  function ensureGrid() { const n = S.cols * S.rows; if (energy.length !== n) { energy = new Array(n).fill(0); flash = new Array(n).fill(0); last = new Array(n).fill(0); } }
+  function cellMidi(c, r) { const sc = SCALES[S.scale]; return S.root + sc[c % sc.length] + 12 * Math.floor(c / sc.length) + 12 * (S.rows - 1 - r); }
+  function activeSource() { return S.src === "demo" ? demo : (S.src === "cam" || S.src === "file") && video.readyState >= 2 ? video : null; }
+  function srcAspect(src) { if (!src) return 16 / 9; if (src === demo) return 16 / 9; return (video.videoWidth || 16) / (video.videoHeight || 9); }
+
+  function analyse(now) {
+    const src = activeSource(); if (!src) { prev = null; curGray = null; return; }
+    pctx.save();
+    if (S.src === "cam" && S.mirror) { pctx.translate(PW, 0); pctx.scale(-1, 1); }
+    pctx.drawImage(src, 0, 0, PW, PH); pctx.restore();
+    const d = pctx.getImageData(0, 0, PW, PH).data;
+    for (let i = 0, j = 0; i < gray.length; i++, j += 4) gray[i] = (d[j] * 0.3 + d[j + 1] * 0.59 + d[j + 2] * 0.11) | 0;
+    // COLOR: promedio RGB de la imagen → calidez (rojo vs azul). Cálido abre el timbre, frío lo cierra
+    let rr = 0, gg = 0, bb = 0, n = 0;
+    for (let j = 0; j < d.length; j += 16) { rr += d[j]; gg += d[j + 1]; bb += d[j + 2]; n++; }
+    rr /= n; gg /= n; bb /= n; S.rgb = [rr, gg, bb];
+    S.warmth += (Math.max(-1, Math.min(1, (rr - bb) / 70)) - S.warmth) * 0.1;
+    if (S.mode === "escaner") { classify(d); computeCover(); }   // v08: lee los colores de las emociones
+    if (S.mode === "rostros" || S.mode === "escaner") { prevBuf.set(gray); prev = prevBuf; curGray = gray; return; }   // v05: ahorra trabajo
+    ensureGrid();
+    if (counts.length !== S.cols * S.rows) counts = new Uint32Array(S.cols * S.rows);   // solo si cambia la grilla
+    counts.fill(0);
+    if (prev) {
+      let changed = 0;
+      for (let i = 0; i < gray.length; i++) { const df = Math.abs(gray[i] - prev[i]); mask[i] = df > S.thr ? Math.min(255, df) : 0; if (mask[i]) changed++; }
+      const p = S.parts ? Math.min(0.35, 50 / Math.max(1, changed)) : 0;
+      for (let y = 0; y < PH; y++) {
+        const r = Math.min(S.rows - 1, Math.floor(y / PH * S.rows));
+        for (let x = 0; x < PW; x++) {
+          const i = y * PW + x; if (!mask[i]) continue;
+          counts[r * S.cols + Math.min(S.cols - 1, Math.floor(x / PW * S.cols))]++;
+          if (p && Math.random() < p && parts.length < 300) {
+            const k = Math.min(1, (mask[i] - S.thr) / 110);
+            parts.push({ x: (x + Math.random()) / PW, y: (y + Math.random()) / PH, vy: -0.01 - Math.random() * 0.02, k, life: 1, decay: 1.6 + Math.random() * 1.2 });
+          }
+        }
+      }
+    }
+    const hadPrev = !!prev;
+    prevBuf.set(gray); prev = prevBuf; curGray = gray;   // v07: se copia al búfer del cuadro anterior
+    if (S.mode === "linea" || S.mode === "lineas") { if (hadPrev) lineDetect(now); return; }
+    if (S.mode === "escaner" || S.mode === "rostros") return;
+    const cellPx = (PW / S.cols) * (PH / S.rows);
+    for (let r = 0; r < S.rows; r++) for (let c = 0; c < S.cols; c++) {
+      const k = r * S.cols + c;
+      energy[k] = energy[k] * 0.5 + (counts[k] / cellPx) * 0.5;
+      if (energy[k] > S.sens && now - last[k] > S.cool) {
+        last[k] = now; flash[k] = 1;
+        const m = cellMidi(c, r), vel = S.mapVel ? Math.min(1, 0.35 + energy[k] * 2.2) : 0.8, pan = S.mapPan ? ((c + 0.5) / S.cols) * 2 - 1 : 0;
+        fire(now, m, vel, pan * 0.85, null, (c + 1) + "," + (r + 1), energy[k]);
+      }
+    }
+  }
+
+  // una nota disparada por cualquier modo: suena, entra a la partitura y actualiza la lectura
+  function fire(now, m, vel, pan, opt, where, pct) {
+    if (soundOn()) voice(m, vel, pan);   // ← aquí la imagen se convierte en sonido
+    roll.push({ t: now, m, c: opt ? opt.color : null }); lastMidi = m; lastFreq = mtof(m); lastNoteT = performance.now(); updScopeCap();
+    $("lastNote").textContent = noteName(m);
+    $("lastHz").textContent = Math.round(mtof(m)) + " Hz";
+    $("lastZone").textContent = where;
+    $("lastPct").textContent = Math.round(pct * 100) + " %";
+    $("noteDl").disabled = !soundOn();
+  }
+
+  // ---- modos de línea: la línea queda quieta y suena lo que la cruza ----
+  const MAXL = 4, MAXS = 12;
+  const lEnergy = new Array(MAXL * MAXS).fill(0), lFlash = new Array(MAXL * MAXS).fill(0), lLast = new Array(MAXL * MAXS).fill(0), lCx = new Array(MAXL * MAXS).fill(NaN);
+  let curGray = null;
+  function segMidi(i) { const sc = SCALES[S.scale]; return S.root + sc[i % sc.length] + 12 * Math.floor(i / sc.length); }
+  function lineXs() { if (S.mode === "linea") return [S.lx]; const a = []; for (let i = 0; i < S.nl; i++) a.push((i + 1) / (S.nl + 1)); return a; }
+  function lineDetect(now) {
+    const xs = lineXs(), segH = PH / S.segs;
+    xs.forEach((lx, li) => {
+      const px = Math.min(PW - 2, Math.max(1, Math.round(lx * PW))), v = S.mode === "lineas" ? VOICES[li] : null;
+      for (let s = 0; s < S.segs; s++) {
+        const y0 = Math.floor(s * segH), y1 = Math.max(y0 + 1, Math.floor((s + 1) * segH)), k = li * MAXS + s;
+        let n = 0, sx = 0, sn = 0;
+        for (let y = y0; y < y1; y++) {
+          for (let x = px - 1; x <= px + 1; x++) if (mask[y * PW + x]) n++;
+          for (let x = Math.max(0, px - 10); x <= Math.min(PW - 1, px + 10); x++) if (mask[y * PW + x]) { sx += x; sn++; }
+        }
+        const cx = sn ? sx / sn : NaN, dx = cx - lCx[k]; lCx[k] = cx;
+        lEnergy[k] = lEnergy[k] * 0.4 + (n / (3 * (y1 - y0))) * 0.6;
+        if (lEnergy[k] > S.sens && now - lLast[k] > S.cool) {
+          lLast[k] = now; lFlash[k] = 1;
+          const left = S.mapDir && dx < -0.4;
+          const m = segMidi(S.segs - 1 - s) + (v ? v.oct : 0) - (left ? 12 : 0);
+          const vel = S.mapVel ? Math.min(1, 0.35 + lEnergy[k] * 1.2) : 0.8, pan = S.mapPan ? lx * 2 - 1 : 0;
+          fire(now, m, vel, pan * 0.85, v, (S.mode === "lineas" ? "L" + (li + 1) + " · " : "") + "tramo " + (s + 1) + (left ? " ←" : ""), lEnergy[k]);
+        }
+      }
+    });
+  }
+
+  // ================= ESCÁNER DE COLOR (v08) =================
+  // EN PALABRAS: el detector dice qué emociones hay en pantalla y cada emoción tiene un color.
+  // La imagen se lee como un piano roll: cada FILA es una nota de la escala de esa emoción
+  // (arriba agudo, abajo grave) y cada COLUMNA es un paso de tiempo. El escáner avanza de
+  // izquierda a derecha y, donde encuentra el color de una emoción, suena su nota.
+  // Largo de la mancha de color → duración de la nota · cantidad de color → volumen.
+  // Todas las emociones presentes se leen a la vez, cada una con su color y su escala.
+  const EMO_HUE = {   // rango de tono (0–360°) que busca cada emoción; neutral busca grises y blancos
+    happy: [45, 68], disgusted: [75, 160], surprised: [165, 200], sad: [200, 250], fearful: [255, 300], angry: [345, 15] };
+  const cls = new Uint8Array(PW * PH);   // a qué emoción pertenece cada píxel (255 = a ninguna)
+  const coverPool = {}; let cover = {};  // por emoción: proporción de su color en cada celda (filas × pasos)
+  // convierte cada píxel a tono / saturación / brillo y decide de qué emoción es su color
+  function classify(d) {
+    for (let i = 0, j = 0; i < cls.length; i++, j += 4) {
+      const r = d[j] / 255, g = d[j + 1] / 255, b = d[j + 2] / 255, mx = Math.max(r, g, b), c = mx - Math.min(r, g, b), sat = mx ? c / mx : 0;
+      cls[i] = 255;
+      if (sat < 0.15) { if (mx > 0.35) cls[i] = 0; continue; }          // gris o blanco → neutral
+      if (sat < S.smin || mx < 0.25) continue;                          // muy pálido u oscuro → nada
+      let h = mx === r ? ((g - b) / c) % 6 : mx === g ? (b - r) / c + 2 : (r - g) / c + 4;
+      h *= 60; if (h < 0) h += 360;
+      for (let k = 1; k < EMO_KEYS.length; k++) {
+        const [lo, hi] = EMO_HUE[EMO_KEYS[k]];
+        if (lo < hi ? h >= lo && h < hi : h >= lo || h < hi) { cls[i] = k; break; }
+      }
+    }
+  }
+  function activeEmos() { const set = new Set(); faces.forEach((t) => { if (!t.missed) set.add(effEmo(t)); }); return [...set]; }
+  // cuenta, celda por celda, cuánto color de cada emoción activa hay
+  function computeCover() {
+    const act = activeEmos(), C = S.steps, R = S.segs, n = C * R, next = {};
+    act.forEach((id) => { if (!coverPool[id] || coverPool[id].length !== n) coverPool[id] = new Float32Array(n); coverPool[id].fill(0); next[id] = coverPool[id]; });
+    if (act.length) {
+      const byK = {}; act.forEach((id) => { byK[EMO_KEYS.indexOf(id)] = coverPool[id]; });
+      for (let y = 0; y < PH; y++) {
+        const row = Math.min(R - 1, Math.floor(y / PH * R)) * C;
+        for (let x = 0; x < PW; x++) { const arr = byK[cls[y * PW + x]]; if (arr) arr[row + Math.min(C - 1, Math.floor(x / PW * C))]++; }
+      }
+      const cellPx = (PW / C) * (PH / R);
+      act.forEach((id) => { const arr = coverPool[id]; for (let i = 0; i < n; i++) arr[i] /= cellPx; });
+    }
+    cover = next;
+  }
+  // nota de una fila: la fila de arriba es el grado más alto de la escala de la emoción
+  function rowMidi(p, r) { const sc = SCALES[p.scale], deg = S.segs - 1 - r; return 12 * (p.oct + 1) + p.root + sc[deg % sc.length] + 12 * Math.floor(deg / sc.length); }
+  const isOn = (id, r, c) => cover[id] && cover[id][r * S.steps + c] >= S.cmin;
+
+  let scanT0 = performance.now(), scanPos = 0, lastStep = -1;
+  const hits = [], hold = {}, flashes = {};   // hold[emoción][fila] = paso hasta donde dura la nota larga
+  function scanTick(now) {
+    scanPos = (((now - scanT0) / 1000) / S.sdur) % 1;
+    const st = Math.floor(scanPos * S.steps);
+    if (st === lastStep) return;
+    if (st < lastStep) Object.values(hold).forEach((h) => h.fill(-1));   // nueva vuelta
+    lastStep = st;
+    if (!soundOn()) return;
+    const stepDur = S.sdur / S.steps;
+    Object.keys(cover).forEach((id) => {
+      if (!hold[id] || hold[id].length !== S.segs) hold[id] = new Int16Array(S.segs).fill(-1);
+      const h = hold[id], starts = [];
+      for (let r = 0; r < S.segs; r++) {
+        if (!isOn(id, r, st)) { h[r] = -1; continue; }
+        if (h[r] >= st) continue;                                  // la nota larga sigue sonando
+        let run = 1; while (st + run < S.steps && run < 8 && isOn(id, r, st + run)) run++;   // largo de la mancha
+        h[r] = st + run - 1; starts.push({ r, run, amt: cover[id][r * S.steps + st] });
+      }
+      // máximo 3 notas nuevas por emoción en cada paso (las de más color)
+      starts.sort((a, b) => b.amt - a.amt).slice(0, 3).forEach(({ r, run, amt }) => playColor(id, r, run * stepDur * 0.95, amt));
+    });
+  }
+  // un instrumento por emoción (con su receta), compartido por todas sus notas de color
+  const emoInst = {};
+  function emoInstrument(id) {
+    if (emoInst[id] || !bus) return emoInst[id];
+    const p = EMO_PRESETS[id];
+    const v = { synth: new Tone.PolySynth(Tone.Synth, { maxPolyphony: 6 }), vib: new Tone.Vibrato(5, p.vib), filt: new Tone.Filter(p.cut, "lowpass"),
+      pan: new Tone.Panner(0), dry: new Tone.Gain(1), sDel: new Tone.Gain(p.delay), sRev: new Tone.Gain(p.rev) };
+    v.synth.set({ oscillator: oscFrom(p), envelope: { attack: p.atk, decay: p.dec, sustain: p.sus, release: p.rel } });
+    v.synth.volume.value = -14; v.filt.Q.value = p.q;
+    v.synth.chain(v.vib, v.filt, v.pan); v.pan.connect(v.dry); v.pan.connect(v.sDel); v.pan.connect(v.sRev);
+    v.dry.connect(bus); v.sDel.connect(fxDelay); v.sRev.connect(fxRev);
+    emoInst[id] = v; return v;
+  }
+  function playColor(id, r, dur, amt) {
+    const v = emoInstrument(id); if (!v) return;
+    const p = EMO_PRESETS[id], m = rowMidi(p, r), cents = (Math.random() * 2 - 1) * S.tension * 30;   // tensión → desafinación
+    v.filt.frequency.rampTo(Math.min(16000, p.cut * Math.pow(2, S.warmth)), 0.05);                     // color general → brillo
+    v.pan.pan.rampTo((S.mapPan ? scanPos * 2 - 1 : 0) * 0.85, 0.05);                                    // posición del escáner → pan
+    const vel = S.mapVel ? Math.min(1, 0.3 + amt * 0.9) : 0.8;                                          // cantidad de color → volumen
+    v.synth.triggerAttackRelease(mtof(m) * Math.pow(2, cents / 1200), Math.max(0.06, dur), Tone.now() + 0.01, vel);
+    (flashes[id] = flashes[id] || {})[r] = performance.now() + Math.max(120, dur * 1000);
+    (played[id] = played[id] || {})[((m % 12) + 12) % 12] = performance.now();
+    roll.push({ t: performance.now(), m, c: p.color }); lastMidi = m; lastFreq = mtof(m); lastNoteT = performance.now();
+    $("lastNote").textContent = noteName(m); $("lastHz").textContent = Math.round(mtof(m)) + " Hz";
+    $("lastZone").textContent = p.name.toLowerCase() + " · fila " + (r + 1); $("lastPct").textContent = Math.round(vel * 100) + " %";
+    $("noteDl").disabled = !soundOn();
+  }
+
+  // ================= rostros (face-api) =================
+  // EN PALABRAS: cada 0,18 s face-api mira el video y entrega los rostros que ve, con su
+  // posición y sus 7 emociones. Cada rostro nuevo se convierte en una VOZ con la receta de su
+  // emoción. Los rostros que comparten emoción no parten de la misma nota: se reparten grados
+  // de la escala (1º, 3º, 5º, 7º…) y así forman un acorde. Luego cada voz camina por la escala
+  // (melodía). La cantidad de rostros sube la tensión y el color de la imagen cambia el brillo.
+  const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/model/";
+  const EMO_KEYS = ["neutral", "happy", "sad", "angry", "fearful", "disgusted", "surprised"];
+  const faces = [];            // rostros que el sistema está siguiendo
+  let faceReady = false, faceMsg = "cargando detector…", nextId = 1, dominant = "neutral", clockStep = 0;
+
+  const effEmo = (t) => S.emoForce || t.emo;           // emoción con que suena (la forzada gana)
+  async function loadFaceModels() {
+    if (typeof faceapi === "undefined") { faceMsg = "no se pudo cargar face-api (revisa la conexión)"; return; }
+    try { if (faceapi.tf) { await faceapi.tf.setBackend("webgl"); await faceapi.tf.ready(); } } catch (_) {}   // v05: usar la tarjeta gráfica
+    const load = async (url) => {
+      await faceapi.nets.tinyFaceDetector.loadFromUri(url);
+      await faceapi.nets.faceLandmark68TinyNet.loadFromUri(url);
+      await faceapi.nets.faceExpressionNet.loadFromUri(url);
+    };
+    try { await load(MODEL_URL); }
+    catch (_) {
+      try { await load("models/"); }                    // respaldo: carpeta models/ dentro del proyecto
+      catch (e) { faceMsg = "no se pudieron cargar los modelos de rostros"; return; }
+    }
+    faceReady = true; faceMsg = "detector listo"; detectLoop();
+  }
+  // v05: el detector trabaja con una imagen más chica (S.detSize) y espera lo mismo que tardó antes de
+  // volver a mirar. Así nunca ocupa más de la mitad del tiempo y la cámara y el sonido no se traban.
+  let detMs = 0;
+  async function detectLoop() {
+    const src = activeSource(), t0 = performance.now();
+    if (src === video && !document.hidden) {
+      try {
+        const res = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: S.detSize, scoreThreshold: 0.4 }))
+          .withFaceLandmarks(true).withFaceExpressions();
+        updateFaces(res);
+      } catch (_) {}
+    } else if (!src) updateFaces([]);
+    detMs = performance.now() - t0;
+    setTimeout(detectLoop, Math.max(200, detMs));   // v07: al menos 200 ms entre análisis
+  }
+  // ===== EMOCIÓN DE UN ROSTRO (v05) =====
+  // 1. Se promedian las últimas 4 lecturas del rostro (≈ 0,3 s) para quitar el ruido de cada cuadro.
+  // 2. Si se calibró, se resta lo que esa cara marca "en reposo" (p. ej. una cara seria que el modelo lee como triste).
+  // 3. Gana la emoción MÁS FUERTE, pero solo si llega a la confianza mínima (S.esens); si no, queda neutral.
+  const HIST = 4;
+  let baseline = null, calib = null;                     // calibración del gesto neutro
+  function adjust(probs) {
+    if (!baseline) return probs;
+    const a = probs.slice(); let removed = 0;
+    for (let i = 1; i < a.length; i++) { const v = Math.max(0, a[i] - baseline[i]); removed += a[i] - v; a[i] = v; }
+    a[0] += removed;                                     // lo que se quitó vuelve a neutral
+    return a;
+  }
+  function pickEmotion(probs) {
+    const best = probs.indexOf(Math.max(...probs));
+    return best > 0 && probs[best] >= S.esens ? EMO_KEYS[best] : "neutral";
+  }
+  function readFace(t, raw) {
+    t.hist.push(raw); if (t.hist.length > HIST) t.hist.shift();
+    const avg = EMO_KEYS.map((_, i) => t.hist.reduce((s, h) => s + h[i], 0) / t.hist.length);
+    if (calib) { calib.sum = calib.sum.map((v, i) => v + raw[i]); calib.n++; }
+    t.probs = adjust(avg);
+    return pickEmotion(t.probs);
+  }
+  // empareja lo que se detectó ahora con los rostros que ya veníamos siguiendo
+  function updateFaces(res) {
+    const vw = video.videoWidth || 1, vh = video.videoHeight || 1, now = performance.now(), flip = S.src === "cam" && S.mirror;
+    const dets = res.map((r) => {
+      const b = r.detection.box; let x = (b.x + b.width / 2) / vw; if (flip) x = 1 - x;
+      return { x, y: (b.y + b.height / 2) / vh, w: b.width / vw, h: b.height / vh, probs: EMO_KEYS.map((k) => r.expressions[k] || 0) };
+    });
+    faces.forEach((t) => { t.matched = false; });
+    dets.forEach((d) => {
+      let best = null, bd = Infinity;
+      faces.forEach((t) => { if (t.matched) return; const dist = Math.hypot(t.x - d.x, t.y - d.y); if (dist < bd) { bd = dist; best = t; } });
+      if (best && bd < Math.max(best.w, d.w) * 1.2) {          // es el mismo rostro de antes: se suaviza su movimiento
+        const t = best; t.matched = true; t.missed = 0;
+        t.x += (d.x - t.x) * 0.5; t.y += (d.y - t.y) * 0.5; t.w += (d.w - t.w) * 0.5; t.h += (d.h - t.h) * 0.5;
+        const dom = readFace(t, d.probs);
+        if (dom === t.emo) t.cand = null;
+        else if (S.react <= 0 || (t.cand === dom && now - t.candT >= S.react)) { t.emo = dom; t.cand = null; t.changed = true; }  // cambia tras S.react ms
+        else if (t.cand !== dom) { t.cand = dom; t.candT = now; }
+      } else {                                                   // rostro nuevo: nace una voz
+        const nf = { hist: [] }, emo = readFace(nf, d.probs);
+        faces.push({ id: nextId++, x: d.x, y: d.y, w: d.w, h: d.h, hist: nf.hist, probs: nf.probs, emo, cand: null, candT: 0,
+          matched: true, missed: 0, walk: 0, notes: 0, flash: 0, lastNote: null, voice: null, rank: 0, anchor: 0 });
+      }
+    });
+    for (let i = faces.length - 1; i >= 0; i--) {             // rostros que dejaron de verse: su voz se apaga
+      const t = faces[i]; if (t.matched) continue;
+      if (++t.missed > 5) { releaseVoice(t); faces.splice(i, 1); }
+    }
+    assignHarmony(); updateTension(); updateDominant();
+    // v05: cuando un rostro cambia de emoción, suena de inmediato con su nueva receta (sin esperar el pulso)
+    if (S.mode === "rostros" && soundOn()) faces.forEach((t) => { if (t.changed) { t.changed = false; t.notes = 0; nextNote(t); playFace(t, Tone.now()); } });
+    else faces.forEach((t) => { t.changed = false; });
+  }
+  // ARMONÍA: dentro de cada emoción, el 1er rostro parte en el grado 0, el 2º en el 2, el 3º en el 4…
+  // (saltando de a uno por la escala, como se arman los acordes)
+  function assignHarmony() {
+    const groups = {};
+    faces.forEach((t) => { (groups[effEmo(t)] = groups[effEmo(t)] || []).push(t); });
+    Object.values(groups).forEach((g) => g.sort((a, b) => a.id - b.id).forEach((t, i) => { t.rank = i; t.anchor = i * 2; }));
+  }
+  // TENSIÓN (cantidad de personas): más rostros → más murmullo, más desafinación, filtro más cerrado
+  function updateTension() {
+    S.people = faces.filter((t) => t.missed === 0).length;
+    S.tension += (Math.min(1, S.people / 8) - S.tension) * 0.3;
+    if (noiseGain) { noiseGain.gain.rampTo(S.tension * 0.22, 0.5); tensionFilter.frequency.rampTo(S.cut * (1 - 0.6 * S.tension), 0.5); }
+  }
+  // la emoción más repetida se muestra en la ventana Señal y en la lectura
+  function updateDominant() {
+    const count = {}; faces.forEach((t) => { if (!t.missed) count[effEmo(t)] = (count[effEmo(t)] || 0) + 1; });
+    const keys = Object.keys(count); if (!keys.length) return;
+    const dom = keys.sort((a, b) => count[b] - count[a])[0];
+    if (dom === dominant) return;
+    dominant = dom; const p = EMO_PRESETS[dom];
+    S.wave = p.wave; if (p.partials) S.partials = p.partials.slice();
+    S.atk = p.atk; S.dec = p.dec; S.sus = p.sus; S.rel = p.rel; S.q = p.q; S.vib = p.vib; S.delay = p.delay;
+    applySound(true); updScopeCap(); updEnvCap(); $("stSnd").textContent = WAVE_NAME[S.wave];
+  }
+  // VOZ DE UN ROSTRO: sintetizador → vibrato → filtro → pan → (directo + envíos a eco y reverb)
+  function ensureVoice(t) {
+    if (t.voice || !bus) return t.voice;
+    const v = { synth: new Tone.Synth(), vib: new Tone.Vibrato(5, 0), filt: new Tone.Filter(3000, "lowpass"), pan: new Tone.Panner(0),
+      dry: new Tone.Gain(1), sDel: new Tone.Gain(0), sRev: new Tone.Gain(0), emo: null };
+    v.synth.volume.value = -14;
+    v.synth.chain(v.vib, v.filt, v.pan);
+    v.pan.connect(v.dry); v.pan.connect(v.sDel); v.pan.connect(v.sRev);
+    v.dry.connect(bus); v.sDel.connect(fxDelay); v.sRev.connect(fxRev);
+    t.voice = v; retune(t); return v;
+  }
+  // aplica a la voz la receta de su emoción (solo si cambió)
+  function retune(t) {
+    const v = t.voice; if (!v) return;
+    const id = effEmo(t); if (v.emo === id) return;
+    const p = EMO_PRESETS[id]; v.emo = id;
+    v.synth.set({ oscillator: oscFrom(p), envelope: { attack: p.atk, decay: p.dec, sustain: p.sus, release: p.rel } });
+    v.filt.Q.value = p.q; v.vib.depth.value = p.vib;
+    v.sDel.gain.rampTo(p.delay, 0.2); v.sRev.gain.rampTo(p.rev, 0.2);
+  }
+  function releaseVoice(t) {
+    const v = t.voice; if (!v) return; t.voice = null;
+    try { v.synth.triggerRelease(); } catch (_) {}
+    setTimeout(() => [v.synth, v.vib, v.filt, v.pan, v.dry, v.sDel, v.sRev].forEach((n) => n.dispose()), 6000);
+  }
+  function clearFaces() { faces.forEach(releaseVoice); faces.length = 0; S.people = 0; }
+  // MELODÍA: después de la primera nota, la voz da pasos pequeños por la escala alrededor de su grado
+  function nextNote(t) {
+    if (t.notes++ === 0) { t.walk = 0; return; }
+    const r = Math.random();
+    t.walk += r < 0.3 ? -1 : r < 0.55 ? 0 : r < 0.9 ? 1 : 2;
+    t.walk = Math.max(-2, Math.min(3, t.walk));
+  }
+  // TOCA LA NOTA DE UN ROSTRO
+  const MAX_VOICES = 8;   // v05: más de 8 voces a la vez sobrecarga el audio (los rostros extra igual suman tensión)
+  function playFace(t, time) {
+    if (!t.voice && faces.filter((f) => f.voice).length >= MAX_VOICES) return;
+    const v = ensureVoice(t); if (!v) return;
+    retune(t);
+    const id = effEmo(t), p = EMO_PRESETS[id], sc = SCALES[p.scale];
+    const deg = Math.max(0, t.anchor + t.walk);
+    const m = 12 * (p.oct + 1) + p.root + sc[deg % sc.length] + 12 * Math.floor(deg / sc.length);
+    const cents = (Math.random() * 2 - 1) * S.tension * 30;                 // tensión → desafinación
+    v.filt.frequency.rampTo(Math.min(16000, p.cut * Math.pow(2, S.warmth)), 0.05);  // color → brillo (±1 octava)
+    v.pan.pan.rampTo((S.mapPan ? t.x * 2 - 1 : 0) * 0.85, 0.05);            // posición x → pan
+    const vel = S.mapVel ? Math.min(1, 0.35 + t.h * 2.2) : 0.8;            // rostro grande (cerca) → más fuerte
+    const dur = Math.max(0.08, p.every * (60 / transport().bpm.value / 4) * 0.8);
+    v.synth.triggerAttackRelease(mtof(m) * Math.pow(2, cents / 1200), dur, time, vel);
+    drawer().schedule(() => showNote(t, m, vel, p), time);
+  }
+  // el reloj (Tone.Loop) llama esto cada semicorchea: decide qué rostros tocan en este pulso
+  function clockTick(time) {
+    clockStep++;
+    if (S.mode !== "rostros") return;
+    faces.forEach((t) => {
+      if (t.missed > 1) return;
+      const p = EMO_PRESETS[effEmo(t)];
+      if (clockStep % p.every !== 0 || Math.random() > p.prob) return;
+      nextNote(t); playFace(t, time);
+    });
+  }
+  // actualiza pantalla, partitura y lectura cuando suena una nota de rostro
+  function showNote(t, m, vel, p) {
+    t.flash = 1; t.lastNote = m;
+    const id = effEmo(t); (played[id] = played[id] || {})[((m % 12) + 12) % 12] = performance.now();   // para el monitor de escalas
+    roll.push({ t: performance.now(), m, c: p.color }); lastMidi = m; lastFreq = mtof(m); lastNoteT = performance.now();
+    $("lastNote").textContent = noteName(m); $("lastHz").textContent = Math.round(mtof(m)) + " Hz";
+    $("lastZone").textContent = "rostro " + t.id + " · " + p.name.toLowerCase(); $("lastPct").textContent = Math.round(vel * 100) + " %";
+    $("noteDl").disabled = !soundOn();
+  }
+  // ===== MONITOR DE ESCALAS (v06) =====
+  // Por cada emoción que suena en pantalla muestra: su escala, su tónica y las notas de la escala.
+  // Las notas que acaban de sonar se encienden con el color de la emoción.
+  const played = {};
+  function renderScales() {
+    if ($("signal").hidden) return;
+    const count = {};
+    faces.forEach((t) => { if (!t.missed) count[effEmo(t)] = (count[effEmo(t)] || 0) + 1; });
+    const ids = Object.keys(count).sort((a, b) => count[b] - count[a]), now = performance.now();
+    if (!ids.length) { $("scales").innerHTML = '<p class="scales-empty">sin rostros en pantalla</p>'; return; }
+    $("scales").innerHTML = ids.map((id) => {
+      const p = EMO_PRESETS[id], tonic = 12 * (p.oct + 1) + p.root, hits = played[id] || {};
+      const notes = SCALES[p.scale].map((d, i) => {
+        const pc = (p.root + d) % 12, on = hits[pc] && now - hits[pc] < 400;
+        return '<span class="' + (i === 0 ? "root" : "") + (on ? " on" : "") + '">' + NAMES[pc] + "</span>";
+      }).join("");
+      return '<div class="scale-row" style="--c:' + p.color + '"><i></i><div><b>' + p.name + "</b> · " + SCALE_NAME[p.scale] +
+        " · tónica " + noteName(tonic) + " · " + count[id] + (count[id] === 1 ? " rostro" : " rostros") +
+        '<div class="scale-notes">' + notes + "</div></div></div>";
+    }).join("");
+  }
+  function faceInfoText() {
+    if (!faceReady) return "detector: " + faceMsg;
+    const warm = S.warmth > 0.15 ? "cálido" : S.warmth < -0.15 ? "frío" : "neutro";
+    return S.people + (S.people === 1 ? " rostro" : " rostros") + " · dominante: " + (EMO_PRESETS[dominant] ? EMO_PRESETS[dominant].name.toLowerCase() : "—") +
+      (S.emoForce ? " (forzada)" : "") + " · tensión " + Math.round(S.tension * 100) + " % · color " + warm + " · detector " + Math.round(detMs) + " ms" + (baseline ? " · calibrado" : "");
+  }
+  function drawFaces(bx, by, bw, bh, dpr, dt) {
+    vctx.font = Math.round(10 * dpr) + "px 'IBM Plex Mono', monospace";
+    faces.forEach((t) => {
+      const p = EMO_PRESETS[effEmo(t)], col = p.color, a = t.missed ? 0.35 : 1;
+      const w = t.w * bw, h = t.h * bh, x = bx + t.x * bw - w / 2, y = by + t.y * bh - h / 2;
+      if (t.flash > 0.02) { vctx.fillStyle = rgba(col, 0.22 * t.flash); vctx.fillRect(x, y, w, h); t.flash *= Math.pow(0.06, dt); }
+      if (S.lines) { vctx.strokeStyle = rgba(col, 0.85 * a); vctx.lineWidth = (1 + t.flash * 2) * dpr; vctx.strokeRect(Math.round(x) + 0.5, Math.round(y) + 0.5, Math.round(w), Math.round(h)); }
+      if (S.notes) {
+        vctx.fillStyle = rgba(col, a);
+        vctx.fillText(("#" + t.id + " · " + p.name + (t.lastNote != null ? " · " + noteName(t.lastNote) : "")).toUpperCase(), x, y - 6 * dpr);
+      }
+      if (S.bars && t.probs) {   // v05: lo que lee el modelo, emoción por emoción
+        const bw2 = Math.max(70 * dpr, w), lh = 9 * dpr, y0 = y + h + 8 * dpr;
+        vctx.fillStyle = "rgba(5,6,26,.72)"; vctx.fillRect(x - 2 * dpr, y0 - 2 * dpr, bw2 + 4 * dpr, lh * 7 + 4 * dpr);
+        vctx.font = Math.round(8 * dpr) + "px 'IBM Plex Mono', monospace";
+        EMO_KEYS.forEach((k, i) => {
+          const q = EMO_PRESETS[k], yy = y0 + i * lh, on = k === t.emo;
+          vctx.fillStyle = on ? q.color : "rgba(238,240,255,.55)"; vctx.fillText(q.name.slice(0, 4).toUpperCase(), x, yy + lh - 2 * dpr);
+          vctx.fillStyle = rgba(q.color, on ? 0.95 : 0.5); vctx.fillRect(x + 30 * dpr, yy + 2 * dpr, (bw2 - 30 * dpr) * Math.min(1, t.probs[i]), lh - 4 * dpr);
+        });
+        const tx = x + 30 * dpr + (bw2 - 30 * dpr) * S.esens;   // línea = confianza mínima
+        vctx.strokeStyle = "rgba(238,240,255,.6)"; vctx.lineWidth = 1; vctx.beginPath(); vctx.moveTo(Math.round(tx) + 0.5, y0); vctx.lineTo(Math.round(tx) + 0.5, y0 + lh * 7); vctx.stroke();
+        vctx.font = Math.round(10 * dpr) + "px 'IBM Plex Mono', monospace";
+      }
+    });
+    $("faceInfo").textContent = faceInfoText();
+  }
+
+  // ================= dibujo =================
+  const view = $("view"), vctx = view.getContext("2d");
+  const maskC = document.createElement("canvas"); maskC.width = PW; maskC.height = PH;
+  const mctx = maskC.getContext("2d"), mimg = mctx.createImageData(PW, PH);
+  function fit(c) {
+    const r = c.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+    if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+    return dpr;
+  }
+  function drawView(dt) {
+    const dpr = fit(view), W = view.width, H = view.height;
+    vctx.fillStyle = "#05061A"; vctx.fillRect(0, 0, W, H);
+    const src = activeSource(), ar = srcAspect(src);
+    let bw = W, bh = W / ar; if (bh > H) { bh = H; bw = H * ar; }
+    const bx = (W - bw) / 2, by = (H - bh) / 2;
+    if (S.view === "mask") {
+      for (let i = 0; i < PW * PH; i++) {
+        const j = i * 4, m = mask[i];
+        if (m) { const k = Math.min(1, (m - S.thr) / 110); mimg.data[j] = 59 + (226 - 59) * k; mimg.data[j + 1] = 59 + (255 - 59) * k; mimg.data[j + 2] = 255 - 196 * k; }
+        else { mimg.data[j] = 8; mimg.data[j + 1] = 9; mimg.data[j + 2] = 32; }
+        mimg.data[j + 3] = 255;
+      }
+      mctx.putImageData(mimg, 0, 0);
+      vctx.imageSmoothingEnabled = false; vctx.drawImage(maskC, bx, by, bw, bh); vctx.imageSmoothingEnabled = true;
+    } else if (src) {
+      vctx.save();
+      if (S.src === "cam" && S.mirror) { vctx.translate(bx * 2 + bw, 0); vctx.scale(-1, 1); }
+      vctx.drawImage(src, bx, by, bw, bh); vctx.restore();
+      if (S.veil > 0) { vctx.fillStyle = "rgba(5,6,26," + S.veil.toFixed(2) + ")"; vctx.fillRect(bx, by, bw, bh); }
+    } else {
+      vctx.fillStyle = "rgba(238,240,255,.6)"; vctx.font = Math.round(11 * dpr) + "px 'IBM Plex Mono', monospace"; vctx.textAlign = "center";
+      vctx.fillText(S.src === "camoff" ? "CÁMARA APAGADA" : "ESPERANDO IMAGEN", W / 2, H / 2); vctx.textAlign = "start";
+    }
+    if (S.parts && S.view !== "mask") drawParts(bx, by, bw, bh, dpr, dt);
+    if (S.mode === "rostros" || S.mode === "escaner") drawFaces(bx, by, bw, bh, dpr, dt);
+    if (S.mode === "rostros") return;
+    if (S.mode === "linea" || S.mode === "lineas") { drawLines(bx, by, bw, bh, dpr, dt); return; }
+    if (S.mode === "escaner") { drawScanner(bx, by, bw, bh, dpr, dt); return; }
+    // tono azul sobre las zonas que cambian (siempre visible)
+    const cw = bw / S.cols, rh = bh / S.rows; ensureGrid();
+    for (let r = 0; r < S.rows; r++) for (let c = 0; c < S.cols; c++) {
+      const k = r * S.cols + c, f = flash[k];
+      if (f > 0.02) {
+        vctx.fillStyle = "rgba(59,59,255," + (S.tint * f).toFixed(3) + ")"; vctx.fillRect(bx + c * cw, by + r * rh, cw, rh);
+        flash[k] *= Math.pow(0.12, dt);
+      }
+    }
+    // líneas: grilla de 1 px, marco de la zona activa y nivel de cambio
+    if (S.lines) {
+      vctx.strokeStyle = "rgba(238,240,255,.22)"; vctx.lineWidth = 1;
+      vctx.beginPath();
+      for (let c = 1; c < S.cols; c++) { const x = Math.round(bx + c * cw) + 0.5; vctx.moveTo(x, by); vctx.lineTo(x, by + bh); }
+      for (let r = 1; r < S.rows; r++) { const y = Math.round(by + r * rh) + 0.5; vctx.moveTo(bx, y); vctx.lineTo(bx + bw, y); }
+      vctx.stroke();
+      for (let r = 0; r < S.rows; r++) for (let c = 0; c < S.cols; c++) {
+        const k = r * S.cols + c, f = flash[k];
+        if (f > 0.15) { vctx.strokeStyle = "rgba(226,255,59," + (0.8 * f).toFixed(3) + ")"; vctx.strokeRect(Math.round(bx + c * cw) + 0.5, Math.round(by + r * rh) + 0.5, Math.round(cw) - 1, Math.round(rh) - 1); }
+        const e = Math.min(1, energy[k] / Math.max(0.01, S.sens));
+        vctx.fillStyle = "rgba(238,240,255,.5)"; vctx.fillRect(bx + c * cw + 8 * dpr, by + (r + 1) * rh - 6 * dpr, (cw - 16 * dpr) * e, dpr);
+      }
+    }
+    if (S.notes) {
+      vctx.font = Math.round(10 * dpr) + "px 'IBM Plex Mono', monospace";
+      for (let r = 0; r < S.rows; r++) for (let c = 0; c < S.cols; c++) {
+        const k = r * S.cols + c, f = flash[k];
+        vctx.fillStyle = f > 0.3 ? "#E2FF3B" : "rgba(238,240,255,.62)";
+        vctx.fillText(noteName(cellMidi(c, r)).toUpperCase(), bx + c * cw + 8 * dpr, by + (r + 1) * rh - 12 * dpr);
+      }
+    }
+  }
+
+  // partículas: puntos breves, sin estela
+  function drawParts(bx, by, bw, bh, dpr, dt) {
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i]; p.y += p.vy * dt; p.life -= p.decay * dt;
+      if (p.life <= 0) { parts.splice(i, 1); continue; }
+      const a = (p.life * 0.55).toFixed(3);
+      vctx.fillStyle = p.k > 0.55 ? "rgba(226,255,59," + a + ")" : "rgba(150,150,255," + a + ")";
+      const s = (1 + p.k * 1.6) * dpr;
+      vctx.fillRect(bx + p.x * bw - s / 2, by + p.y * bh - s / 2, s, s);
+    }
+  }
+  function drawLines(bx, by, bw, bh, dpr, dt) {
+    const xs = lineXs(), segH = bh / S.segs;
+    vctx.font = Math.round(10 * dpr) + "px 'IBM Plex Mono', monospace";
+    xs.forEach((lx, li) => {
+      const x = Math.round(bx + lx * bw) + 0.5, v = S.mode === "lineas" ? VOICES[li] : null, col = v ? v.color : "#E2FF3B";
+      for (let s = 0; s < S.segs; s++) {   // tono azul en el tramo que suena (siempre visible)
+        const k = li * MAXS + s, f = lFlash[k];
+        if (f > 0.02) { vctx.fillStyle = "rgba(59,59,255," + (S.tint * f * 1.4).toFixed(3) + ")"; vctx.fillRect(x - bw * 0.05, by + s * segH, bw * 0.1, segH); lFlash[k] *= Math.pow(0.12, dt); }
+      }
+      if (S.lines) {
+        vctx.strokeStyle = rgba(col, 0.75); vctx.lineWidth = 1.5 * dpr;
+        vctx.beginPath(); vctx.moveTo(x, by); vctx.lineTo(x, by + bh); vctx.stroke();
+        vctx.strokeStyle = rgba(col, 0.45); vctx.lineWidth = 1; vctx.beginPath();
+        for (let s = 1; s < S.segs; s++) { const y = Math.round(by + s * segH) + 0.5; vctx.moveTo(x - 5 * dpr, y); vctx.lineTo(x + 5 * dpr, y); }
+        vctx.stroke();
+        vctx.lineWidth = 4 * dpr;
+        for (let s = 0; s < S.segs; s++) {
+          const f = lFlash[li * MAXS + s]; if (f < 0.1) continue;
+          vctx.strokeStyle = rgba(col, f); vctx.beginPath(); vctx.moveTo(x, by + s * segH + 2 * dpr); vctx.lineTo(x, by + (s + 1) * segH - 2 * dpr); vctx.stroke();
+        }
+      }
+      if (S.notes) {
+        if (v) { vctx.fillStyle = col; vctx.fillText("L" + (li + 1) + " · " + v.name.toUpperCase(), x + 7 * dpr, by + 16 * dpr); }
+        for (let s = 0; s < S.segs; s++) {
+          const f = lFlash[li * MAXS + s]; if (v && f < 0.3) continue;
+          vctx.fillStyle = f > 0.3 ? "#E2FF3B" : "rgba(238,240,255,.62)";
+          vctx.fillText(noteName(segMidi(S.segs - 1 - s) + (v ? v.oct : 0)).toUpperCase(), x + 7 * dpr, by + (s + 0.5) * segH + 4 * dpr);
+        }
+      }
+    });
+  }
+  // v08: piano roll — celdas del color de cada emoción, piano a la izquierda y línea del escáner
+  function drawScanner(bx, by, bw, bh, dpr, dt) {
+    const C = S.steps, R = S.segs, cw = bw / C, rh = bh / R, ids = Object.keys(cover), now = performance.now(), x = Math.round(bx + scanPos * bw) + 0.5;
+    ids.forEach((id) => {
+      const a = cover[id], col = EMO_PRESETS[id].color;
+      for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+        const v = a[r * C + c]; if (v < S.cmin) continue;
+        vctx.fillStyle = rgba(col, Math.min(0.6, 0.2 + v * 0.6));
+        vctx.fillRect(bx + c * cw + 1, by + r * rh + 2 * dpr, cw - 1, rh - 4 * dpr);
+      }
+    });
+    if (S.lines) {
+      vctx.strokeStyle = "rgba(238,240,255,.12)"; vctx.lineWidth = 1; vctx.beginPath();
+      for (let r = 1; r < R; r++) { const y = Math.round(by + r * rh) + 0.5; vctx.moveTo(bx, y); vctx.lineTo(bx + bw, y); }
+      for (let c = 0; c <= C; c++) { const tx = Math.round(bx + c * cw) + 0.5; vctx.moveTo(tx, by); vctx.lineTo(tx, by + 4 * dpr); vctx.moveTo(tx, by + bh - 4 * dpr); vctx.lineTo(tx, by + bh); }
+      vctx.stroke();
+      vctx.strokeStyle = "#E2FF3B"; vctx.lineWidth = 1.5 * dpr; vctx.beginPath(); vctx.moveTo(x, by); vctx.lineTo(x, by + bh); vctx.stroke();
+    }
+    // piano: una columna de teclas por emoción activa, con las notas de su escala
+    const keyW = 34 * dpr;
+    vctx.font = Math.round(9 * dpr) + "px 'IBM Plex Mono', monospace";
+    ids.forEach((id, i) => {
+      const p = EMO_PRESETS[id], x0 = bx + i * keyW, fl = flashes[id] || {};
+      for (let r = 0; r < R; r++) {
+        const y = by + r * rh, m = rowMidi(p, r), lit = fl[r] > now, black = [1, 3, 6, 8, 10].includes(((m % 12) + 12) % 12);
+        vctx.fillStyle = lit ? p.color : black ? "rgba(5,6,26,.9)" : "rgba(238,240,255,.85)";
+        vctx.fillRect(x0, y + 0.5, keyW - 2 * dpr, rh - 1);
+        vctx.fillStyle = lit || !black ? "#05061A" : "rgba(238,240,255,.85)";
+        if (rh > 11 * dpr) vctx.fillText(noteName(m), x0 + 3 * dpr, y + rh / 2 + 3 * dpr);
+      }
+      vctx.fillStyle = p.color; vctx.fillRect(x0, by, keyW - 2 * dpr, 3 * dpr);   // franja con el color de la emoción
+    });
+    if (!ids.length) {
+      vctx.fillStyle = "rgba(238,240,255,.7)"; vctx.font = Math.round(11 * dpr) + "px 'IBM Plex Mono', monospace"; vctx.textAlign = "center";
+      vctx.fillText("ESPERANDO UN ROSTRO: SIN EMOCIÓN NO HAY COLOR QUE BUSCAR", bx + bw / 2, by + bh / 2); vctx.textAlign = "start";
+    }
+  }
+
+  const scope = $("scope"), sctx = scope.getContext("2d"), tbuf = new Uint8Array(1024);
+  const WAVE_NAME = { sine: "seno", triangle: "triangular", square: "cuadrada", sawtooth: "sierra", custom: "armónicos", fmsine: "fm", amsine: "am", fatsawtooth: "gruesa" };
+  function waveVal(type, ph) {
+    ph = ph - Math.floor(ph);
+    if (type === "sine") return Math.sin(2 * Math.PI * ph);
+    if (type === "square") return ph < 0.5 ? 1 : -1;
+    if (type === "sawtooth" || type === "fatsawtooth") return 2 * ph - 1;
+    if (type === "fmsine") return Math.sin(2 * Math.PI * ph + 2 * Math.sin(2 * Math.PI * ph));
+    if (type === "amsine") return Math.sin(2 * Math.PI * ph) * (0.5 + 0.5 * Math.sin(2 * Math.PI * ph));
+    if (type === "custom") { let v = 0, n = 0; S.partials.forEach((a, i) => { v += a * Math.sin(2 * Math.PI * ph * (i + 1)); n += a; }); return n ? v / n : 0; }
+    return ph < 0.25 ? 4 * ph : ph < 0.75 ? 2 - 4 * ph : 4 * ph - 4;
+  }
+  function harmonic(type, n) {
+    if (type === "sine") return n === 1 ? 1 : 0;
+    if (type === "square") return n % 2 ? 1 / n : 0;
+    if (type === "triangle") return n % 2 ? 1 / (n * n) : 0;
+    if (type === "custom") return S.partials[n - 1] || 0;
+    if (type === "fmsine" || type === "amsine") return n <= 3 ? 1 / n : 0;   // aproximado
+    return 1 / n;
+  }
+  const fbuf = new Float32Array(512);   // v07: mismo tamaño que shape.fftSize
+  let lastFreq = 0, lastNoteT = -1e9;
+  function updScopeCap() {
+    const f = lastFreq || mtof(S.root + 12);
+    $("scopeCap").textContent = "forma de onda · " + WAVE_NAME[S.wave];
+    $("specCap").textContent = "armónicos · corte " + (S.cut >= 1000 ? (S.cut / 1000).toFixed(1) + "k" : S.cut);
+  }
+  function drawScope() {
+    if ($("signal").hidden) return;
+    const dpr = fit(scope), W = scope.width, H = scope.height;
+    sctx.clearRect(0, 0, W, H);
+    const split = Math.round(W * 0.6), pad = 6 * dpr, mid = H / 2, amp = H * 0.38;
+    sctx.strokeStyle = "rgba(238,240,255,.14)"; sctx.lineWidth = 1;
+    sctx.beginPath(); sctx.moveTo(0, Math.round(mid) + 0.5); sctx.lineTo(split - pad, Math.round(mid) + 0.5); sctx.moveTo(split + 0.5, 0); sctx.lineTo(split + 0.5, H); sctx.stroke();
+    // señal real (si hay sonido), sincronizada al inicio del ciclo y escalada a la misma cantidad de ciclos
+    const cycles = 2.5, wantLive = soundOn() && lastFreq && (performance.now() - lastNoteT) < (S.atk + S.rel * 1.4) * 1000 + 150;
+    let livePts = null;
+    if (wantLive) {
+      shape.getFloatTimeDomainData(fbuf);
+      let peak = 0; for (let i = 0; i < fbuf.length; i++) peak = Math.max(peak, Math.abs(fbuf[i]));
+      if (peak > 0.004) {
+        const period = ac.sampleRate / lastFreq, span = Math.min(fbuf.length - 1, Math.round(period * cycles));
+        let i0 = 0; for (let i = 1; i < fbuf.length - span; i++) { if (fbuf[i - 1] <= 0 && fbuf[i] > 0) { i0 = i; break; } }
+        livePts = []; for (let k = 0; k <= span; k++) livePts.push([k / span * (split - pad), mid - (fbuf[i0 + k] / peak) * amp]);
+      }
+    }
+    // forma ideal de la onda elegida: en neón sin sonido, de fondo cuando hay señal real
+    sctx.strokeStyle = livePts ? "rgba(238,240,255,.32)" : "#E2FF3B"; sctx.lineWidth = (livePts ? 1 : 1.6) * dpr;
+    sctx.beginPath();
+    for (let x = 0; x <= split - pad; x++) { const y = mid - waveVal(S.wave, x / (split - pad) * cycles) * amp; x ? sctx.lineTo(x, y) : sctx.moveTo(x, y); }
+    sctx.stroke();
+    if (livePts) {
+      sctx.strokeStyle = "#E2FF3B"; sctx.lineWidth = 1.6 * dpr; sctx.beginPath();
+      livePts.forEach(([x, y], k) => (k ? sctx.lineTo(x, y) : sctx.moveTo(x, y))); sctx.stroke();
+    }
+    // armónicos teóricos y curva del pasa-bajos (12 dB/oct); los armónicos sobre el corte se apagan
+    const f0 = lastFreq || mtof(S.root + 12), N = 12, bw = (W - split - pad * 2) / N, hlCut = hlOn("cut");
+    for (let n = 1; n <= N; n++) {
+      const a = harmonic(S.wave, n); if (!a) continue;
+      const h = Math.max(1, a * (H - pad * 2)), x = split + pad + (n - 1) * bw;
+      sctx.fillStyle = f0 * n > S.cut ? "rgba(123,128,179,.45)" : "#E2FF3B";
+      sctx.fillRect(Math.round(x + bw * 0.2), Math.round(H - pad - h), Math.max(1, Math.round(bw * 0.6)), Math.round(h));
+    }
+    sctx.strokeStyle = hlCut ? "#FFFFFF" : "rgba(238,240,255,.6)"; sctx.lineWidth = (hlCut ? 2 : 1) * dpr; sctx.setLineDash([3 * dpr, 3 * dpr]);
+    sctx.beginPath();
+    for (let x = 0; x <= W - split - pad * 2; x++) {
+      const n = 0.5 + x / bw, r = (f0 * n) / S.cut, g = 1 / Math.sqrt(1 + r * r * r * r);
+      const y = H - pad - g * (H - pad * 2); x ? sctx.lineTo(split + pad + x, y) : sctx.moveTo(split + pad + x, y);
+    }
+    sctx.stroke(); sctx.setLineDash([]);
+  }
+
+  // ---- envolvente: attack, release, reverb y volumen ----
+  const envC = $("env"), ectx = envC.getContext("2d"), mbuf = new Float32Array(1024);
+  let HL = { key: null, t: 0 };
+  function hlOn(k) { return HL.key === k && performance.now() - HL.t < 1400; }
+  function envAt(t) {
+    const peak = S.vol, hold = 0.06;
+    if (t < 0) return 0;
+    if (t < S.atk) return peak * (t / S.atk);
+    if (t < S.atk + hold) return peak * (0.6 + 0.4 * Math.exp(-(t - S.atk) / 0.08));
+    const vh = peak * (0.6 + 0.4 * Math.exp(-hold / 0.08));
+    return vh * Math.exp(-(t - S.atk - hold) / (S.rel / 4));
+  }
+  function updEnvCap() {
+    $("envCapL").textContent = "envolvente · A " + Math.round(S.atk * 1000) + " ms · R " + Math.round(S.rel * 1000) + " ms";
+    $("envCapR").textContent = "reverb " + Math.round(S.rev * 100) + " % · vol " + Math.round(S.vol * 100) + " %";
+  }
+  function drawEnv() {
+    if ($("signal").hidden) return;
+    const dpr = fit(envC), W = envC.width, H = envC.height, pad = 6 * dpr, meterW = 10 * dpr;
+    ectx.clearRect(0, 0, W, H);
+    const PW_ = W - meterW - pad * 3, base = H - pad, top = pad + 8 * dpr, hgt = base - top;
+    const hold = 0.06, noteEnd = S.atk + hold + S.rel * 1.6, tail = S.rev > 0.01 ? 2.6 * S.rev + 0.4 : 0;
+    const T = Math.max(0.5, noteEnd + tail);
+    const X = (t) => pad + (t / T) * PW_, Y = (v) => base - v * hgt;
+    ectx.strokeStyle = "rgba(238,240,255,.14)"; ectx.lineWidth = 1;
+    ectx.beginPath(); ectx.moveTo(pad, Math.round(base) + 0.5); ectx.lineTo(pad + PW_, Math.round(base) + 0.5); ectx.moveTo(pad, Math.round(Y(1)) + 0.5); ectx.lineTo(pad + PW_, Math.round(Y(1)) + 0.5); ectx.stroke();
+    // cola de reverb (zona sombreada)
+    if (S.rev > 0.01) {
+      const hlR = hlOn("rev");
+      ectx.fillStyle = hlR ? "rgba(150,150,255,.45)" : "rgba(150,150,255,.2)";
+      ectx.beginPath(); ectx.moveTo(X(S.atk), base);
+      for (let i = 0; i <= 80; i++) { const t = S.atk + (T - S.atk) * i / 80; ectx.lineTo(X(t), Y(Math.max(envAt(t), S.rev * S.vol * 0.55 * Math.exp(-(t - S.atk) / (0.35 + S.rev * 0.9))))); }
+      ectx.lineTo(X(T), base); ectx.closePath(); ectx.fill();
+    }
+    // tramos: attack y release resaltables
+    const seg = (t0, t1, hl) => {
+      ectx.strokeStyle = hl ? "#FFFFFF" : "#E2FF3B"; ectx.lineWidth = (hl ? 2.6 : 1.6) * dpr; ectx.beginPath();
+      for (let i = 0; i <= 60; i++) { const t = t0 + (t1 - t0) * i / 60; i ? ectx.lineTo(X(t), Y(envAt(t))) : ectx.moveTo(X(t), Y(envAt(t))); }
+      ectx.stroke();
+    };
+    const hlV = hlOn("vol");
+    seg(0, S.atk, hlOn("atk") || hlV); seg(S.atk, S.atk + hold, hlV); seg(S.atk + hold, noteEnd, hlOn("rel") || hlV);
+    // marcas A y R
+    ectx.fillStyle = "rgba(238,240,255,.7)"; ectx.font = Math.round(9 * dpr) + "px 'IBM Plex Mono', monospace";
+    ectx.fillText("A", X(S.atk / 2) - 3 * dpr, pad + 6 * dpr);
+    ectx.fillText("R", X(S.atk + hold + S.rel * 0.5), pad + 6 * dpr);
+    ectx.strokeStyle = "rgba(238,240,255,.25)"; ectx.setLineDash([2 * dpr, 3 * dpr]); ectx.beginPath();
+    [S.atk, S.atk + hold].forEach((t) => { const x = Math.round(X(t)) + 0.5; ectx.moveTo(x, top); ectx.lineTo(x, base); }); ectx.stroke(); ectx.setLineDash([]);
+    // cabezal de la última nota
+    const el = (performance.now() - lastNoteT) / 1000;
+    if (soundOn() && el >= 0 && el < T) { const x = Math.round(X(el)) + 0.5; ectx.strokeStyle = "rgba(238,240,255,.8)"; ectx.lineWidth = 1; ectx.beginPath(); ectx.moveTo(x, top - 4 * dpr); ectx.lineTo(x, base); ectx.stroke(); }
+    // medidor de nivel: volumen elegido (marco) y nivel real de salida (relleno)
+    const mx = W - pad - meterW;
+    ectx.strokeStyle = hlV ? "#FFFFFF" : "rgba(238,240,255,.45)"; ectx.lineWidth = 1;
+    ectx.strokeRect(Math.round(mx) + 0.5, Math.round(Y(S.vol)) + 0.5, Math.round(meterW) - 1, Math.round(base - Y(S.vol)) - 1);
+    let lvl = 0;
+    if (analyser && soundOn()) { analyser.getFloatTimeDomainData(mbuf); let sum = 0; for (let i = 0; i < mbuf.length; i++) sum += mbuf[i] * mbuf[i]; lvl = Math.min(1, Math.sqrt(sum / mbuf.length) * 4); }
+    if (lvl > 0.002) { ectx.fillStyle = "#E2FF3B"; ectx.fillRect(Math.round(mx) + 2, Math.round(Y(lvl)), Math.round(meterW) - 4, Math.round(base - Y(lvl))); }
+  }
+  const rollC = $("roll"), rctx = rollC.getContext("2d");
+  function drawRoll(now) {
+    while (roll.length && now - roll[0].t > 10000) roll.shift();
+    if ($("signal").hidden) return;
+    const dpr = fit(rollC), W = rollC.width, H = rollC.height, span = 10000;
+    rctx.clearRect(0, 0, W, H);
+    const fixed = S.mode === "rostros" || S.mode === "escaner";
+    const lo = fixed ? 36 : S.mode === "zonas" ? S.root - 2 : S.root - 14, hi = fixed ? 96 : S.mode === "zonas" ? S.root + 12 * S.rows + 14 : S.root + 46;
+    rctx.strokeStyle = "rgba(238,240,255,.12)"; rctx.lineWidth = 1;
+    for (let m = Math.ceil(lo / 12) * 12; m < hi; m += 12) { const y = Math.round(H - (m - lo) / (hi - lo) * H) + 0.5; rctx.beginPath(); rctx.moveTo(0, y); rctx.lineTo(W, y); rctx.stroke(); }
+    for (const n of roll) {
+      const age = (now - n.t) / span, x = W - age * W, y = H - (n.m - lo) / (hi - lo) * H;
+      rctx.fillStyle = age < 0.05 ? "#E2FF3B" : n.c ? rgba(n.c, 0.85) : "rgba(150,150,255,.85)";
+      rctx.fillRect(x - 2 * dpr, y - 1.5 * dpr, 9 * dpr, 3 * dpr);
+    }
+  }
+
+  // ================= controles =================
+  const RANGES = {
+    cols: { key: "cols", fmt: (v) => v }, rows: { key: "rows", fmt: (v) => v },
+    thr: { key: "thr", fmt: (v) => v }, sens: { key: "sens", fmt: (v) => v + " %", conv: (v) => v / 100 }, cool: { key: "cool", fmt: (v) => v + " ms" },
+    atk: { key: "atk", fmt: (v) => v + " ms", conv: (v) => v / 1000 }, rel: { key: "rel", fmt: (v) => v + " ms", conv: (v) => v / 1000 },
+    cut: { key: "cut", fmt: (v) => v >= 1000 ? (v / 1000).toFixed(1) + "k" : String(v) },
+    rev: { key: "rev", fmt: (v) => v + " %", conv: (v) => v / 100 }, vol: { key: "vol", fmt: (v) => v + " %", conv: (v) => v / 100 },
+    tint: { key: "tint", fmt: (v) => v + " %", conv: (v) => v / 100 }, veil: { key: "veil", fmt: (v) => v + " %", conv: (v) => v / 100 },
+    lx: { key: "lx", fmt: (v) => v + " %", conv: (v) => v / 100 }, nl: { key: "nl", fmt: (v) => v }, segs: { key: "segs", fmt: (v) => v },
+    sdur: { key: "sdur", fmt: (v) => v + " s" },
+    react: { key: "react", fmt: (v) => v + " ms" }, esens: { key: "esens", fmt: (v) => v + " %", conv: (v) => v / 100 }, steps: { key: "steps", fmt: (v) => v },
+    cmin: { key: "cmin", fmt: (v) => v + " %", conv: (v) => v / 100 }, smin: { key: "smin", fmt: (v) => v + " %", conv: (v) => v / 100 }, bright: { key: "bright", fmt: (v) => v },
+  };
+  Object.entries(RANGES).forEach(([id, cfg]) => {
+    const el = $(id), out = $(id + "Out");
+    const upd = () => { const v = Number(el.value); S[cfg.key] = cfg.conv ? cfg.conv(v) : v; out.textContent = cfg.fmt(v); onChange(cfg.key); };
+    el.addEventListener("input", upd); upd();
+    const badge = document.createElement("i"); badge.className = "cc"; badge.hidden = true; badge.dataset.for = id;
+    el.closest(".row").querySelector("label").appendChild(badge);
+  });
+  function onChange(key) {
+    if (["atk", "rel", "cut", "rev", "vol"].includes(key)) { HL = { key, t: performance.now() }; updEnvCap(); }
+    if (key === "cols" || key === "rows") ensureGrid();
+    if (key === "cut" && typeof updScopeCap === "function") updScopeCap();
+    if (key === "nl") renderVoices();
+    if (key === "sdur" || key === "steps") lastStep = -1;
+    if (key === "sens") $("stDet").textContent = Math.round(S.sens * 100) + " %";
+    if (["atk", "rel", "cut", "rev", "vol"].includes(key)) applySound(false);
+  }
+  $("scale").addEventListener("change", (e) => { S.scale = e.target.value; });
+
+  // ===== APLICAR UNA EMOCIÓN =====
+  // Carga la receta completa: escala, nota base, timbre, envolvente y efectos.
+  // Por ahora se elige a mano en el panel Escala; más adelante la llamará el detector de rostros.
+  function ensureRootOption(m) {
+    if ([...$("root").options].some((o) => Number(o.value) === m)) return;
+    const o = document.createElement("option"); o.value = String(m); o.textContent = noteName(m) + " · " + Math.round(mtof(m)) + " Hz"; $("root").appendChild(o);
+  }
+  // EMOCIÓN FORZADA: "" = automática (la decide el detector en cada rostro);
+  // cualquier otra = todos los rostros suenan con esa receta (sirve para probar y comparar)
+  function applyEmotion(id) {
+    S.emoForce = id || ""; $("emo").value = S.emoForce;
+    $("stKeys").textContent = S.emoForce ? EMO_PRESETS[S.emoForce].name.toLowerCase() : "automática";
+    faces.forEach(retune); assignHarmony(); dominant = ""; updateDominant();
+  }
+  $("emo").addEventListener("change", (e) => applyEmotion(e.target.value));
+  $("detSize").addEventListener("change", (e) => { S.detSize = Number(e.target.value); });
+  // CALIBRAR: durante 2 s se registra cómo lee el modelo las caras en reposo; eso se resta después
+  $("calBtn").addEventListener("click", () => {
+    if (!faces.length) { toast("Primero tiene que haber un rostro en pantalla"); return; }
+    calib = { sum: EMO_KEYS.map(() => 0), n: 0 }; baseline = null; $("calBtn").disabled = true; toast("Calibrando: mantén la cara en reposo 2 s");
+    setTimeout(() => {
+      if (calib && calib.n) { baseline = calib.sum.map((v) => v / calib.n); baseline[0] = 0; toast("Calibración lista"); }
+      else toast("No se vio ningún rostro: intenta de nuevo");
+      calib = null; $("calBtn").disabled = false; $("calClear").disabled = !baseline;
+    }, 2000);
+  });
+  $("calClear").addEventListener("click", () => { baseline = null; $("calClear").disabled = true; toast("Calibración borrada"); });
+  $("root").addEventListener("change", (e) => { S.root = Number(e.target.value); });
+  document.querySelectorAll("[data-wave]").forEach((b) => b.addEventListener("click", () => {
+    S.wave = b.dataset.wave; document.querySelectorAll("[data-wave]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    $("stSnd").textContent = b.textContent.toLowerCase(); updScopeCap();
+    applySound(true);
+    if (soundOn()) { const m = S.root + 12; lastFreq = mtof(m); lastNoteT = performance.now(); voice(m, 0.85, 0); updScopeCap(); }
+  }));
+  document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
+    S.view = b.dataset.view; document.querySelectorAll("[data-view]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); updVisState();
+  }));
+  function updMap() {
+    const M = S.mode, p = [];
+    if (M === "rostros" || M === "escaner") {
+      p.push("rostro → voz", "emoción → escala y timbre", "cantidad → tensión", "color → brillo");
+      if (S.mapVel) p.push("tamaño → volumen");
+      if (S.mapPan) p.push("posición x → pan");
+      if (M === "escaner") p.push("color de la emoción → nota", "fila → altura", "largo del color → duración");
+      $("mapMain").textContent = p[0]; $("mapText").textContent = p.join(" · "); $("stMap").textContent = p.length + " reglas";
+      return;
+    }
+    if (M === "zonas") p.push("zona → nota");
+    if (M === "linea") p.push("altura del cruce → nota");
+    if (M === "lineas") p.push("línea → voz", "altura del cruce → nota");
+    if (M === "escaner") p.push("altura → nota");
+    if (S.mapVel) p.push(M === "escaner" ? "brillo → volumen" : "intensidad → volumen");
+    if (S.mapPan) p.push("posición x → pan");
+    if (S.mapDir && (M === "linea" || M === "lineas")) p.push("dirección → octava");
+    if (M === "escaner") p.push("tiempo → recorrido");
+    $("mapMain").textContent = p[0];
+    $("mapText").textContent = p.join(" · "); $("stMap").textContent = p.length + (p.length === 1 ? " regla" : " reglas");
+  }
+  const MODE_INFO = {
+    rostros: { name: "rostros", lbl: " · ", hint: "Cada rostro detectado es una voz que toca sola, con el ritmo y la escala de su emoción. Los rostros con la misma emoción se reparten notas distintas y forman un acorde." },
+    zonas: { name: "zonas", lbl: " · zona ", hint: "La imagen se divide en una grilla: cada zona es una tecla que suena cuando algo se mueve dentro de ella." },
+    linea: { name: "línea fija", lbl: " · ", hint: "Una línea vertical queda quieta y suena cuando algo del video la cruza. La altura del cruce da la nota, la intensidad el volumen y la posición el pan." },
+    lineas: { name: "varias líneas", lbl: " · ", hint: "Varias líneas, cada una con su propia voz: forma de onda, envolvente, octava y filtro. Aquí no aplican la forma de onda, Attack, Release ni Pasa-bajos del panel Sonido, porque cada línea trae los suyos." },
+    escaner: { name: "escáner", lbl: " · ", hint: "La imagen se lee como un piano roll. Cada emoción detectada busca su color (alegría amarillo, tristeza azul, enojo rojo, miedo violeta, asco verde, sorpresa cian, neutral gris). Cada fila es una nota de su escala; la línea avanza y suena donde está el color. El largo de la mancha es la duración de la nota." },
+  };
+  function renderVoices() {
+    $("voices").innerHTML = VOICES.slice(0, S.nl).map((v, i) => '<li><i style="background:' + v.color + '"></i><span><b>Línea ' + (i + 1) + " · " + v.name + "</b><br>" +
+      WAVE_NAME[v.wave] + " · A " + Math.round(v.atk * 1000) + " ms · R " + Math.round(v.rel * 1000) + " ms" + (v.oct ? " · " + (v.oct > 0 ? "+" : "") + v.oct / 12 + " oct" : "") +
+      (v.cut ? " · pasa-bajos " + v.cut + " Hz" : "") + "<br>en tu proyecto podría ser: " + v.ej + "</span></li>").join("");
+  }
+  function setMode(m) {
+    S.mode = m; prev = null; Object.values(hold).forEach((h) => h.fill(-1)); lEnergy.fill(0); lFlash.fill(0); lCx.fill(NaN); hits.length = 0; flash.fill(0);
+    scanT0 = performance.now(); lastStep = -1;
+    document.querySelectorAll("[data-mode]").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.mode === m)));
+    document.querySelectorAll("#pMode [data-show]").forEach((el) => { el.hidden = !el.dataset.show.split(" ").includes(m); });
+    $("modeHint").textContent = MODE_INFO[m].hint; $("stMode").textContent = MODE_INFO[m].name; $("lblZone").textContent = MODE_INFO[m].lbl;
+    $("lblPct").textContent = m === "escaner" || m === "rostros" ? " · intensidad " : " · cambio ";
+    $("lastZone").textContent = "—"; updMap();
+  }
+  document.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+  $("mapDir").addEventListener("change", (e) => { S.mapDir = e.target.checked; updMap(); });
+  $("invert").addEventListener("change", (e) => { S.invert = e.target.checked; });
+  $("mapVel").addEventListener("change", (e) => { S.mapVel = e.target.checked; updMap(); });
+  $("mapPan").addEventListener("change", (e) => { S.mapPan = e.target.checked; updMap(); });
+  $("mirror").addEventListener("change", (e) => { S.mirror = e.target.checked; prev = null; });
+  renderVoices(); setMode("rostros"); setSrc("file", "Fuente: selecciona un video"); updVisState(); updEnvCap(); HL = { key: null, t: 0 };
+
+  // pantalla completa
+  $("fsBtn").addEventListener("click", async () => {
+    const st = $("stage");
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else if (st.requestFullscreen) await st.requestFullscreen();
+      else if (st.webkitRequestFullscreen) st.webkitRequestFullscreen();
+      else throw new Error("no");
+    } catch (_) { toast("Pantalla completa no disponible en esta vista"); }
+  });
+  document.addEventListener("fullscreenchange", () => { $("fsBtn").textContent = document.fullscreenElement ? "⛶ Salir" : "⛶ Pantalla completa"; });
+
+  // ================= MIDI =================
+  const STORE = "oirlaluz.midi.v1";
+  let midiMap = {};
+  try { midiMap = JSON.parse(localStorage.getItem(STORE) || "{}") || {}; } catch (_) { midiMap = {}; }
+  let learning = false, learnTarget = null;
+  function saveMap() { try { localStorage.setItem(STORE, JSON.stringify(midiMap)); } catch (_) {} }
+  function paintBadges() {
+    document.querySelectorAll(".cc").forEach((b) => { b.hidden = true; b.textContent = ""; });
+    Object.entries(midiMap).forEach(([cc, id]) => { const b = document.querySelector('.cc[data-for="' + id + '"]'); if (b) { b.hidden = false; b.textContent = "CC" + cc; } });
+  }
+  paintBadges();
+  function onMidi(e) {
+    const [st, d1, d2] = e.data;
+    if ((st & 0xf0) !== 0xb0) return;
+    if (learning && learnTarget) {
+      Object.keys(midiMap).forEach((k) => { if (midiMap[k] === learnTarget.id) delete midiMap[k]; });
+      midiMap[d1] = learnTarget.id; saveMap(); paintBadges();
+      $("midiHint").textContent = "CC " + d1 + " → " + learnTarget.id + ". Toca otro slider o termina con Asignar.";
+      learnTarget.classList.remove("target"); learnTarget = null; return;
+    }
+    const id = midiMap[d1]; if (!id) return;
+    const el = $(id), min = Number(el.min), max = Number(el.max), step = Number(el.step) || 1;
+    el.value = String(Math.round((min + (d2 / 127) * (max - min)) / step) * step);
+    el.dispatchEvent(new Event("input"));
+  }
+  $("midiBtn").addEventListener("click", async () => {
+    if (!navigator.requestMIDIAccess) { $("midiHint").textContent = "Este navegador no tiene Web MIDI. Usa Chrome o Edge en la versión local."; return; }
+    try {
+      const access = await navigator.requestMIDIAccess();
+      const bind = () => { let n = 0; access.inputs.forEach((i) => { i.onmidimessage = onMidi; n++; }); $("stMidi").textContent = n ? n + " conectado" + (n > 1 ? "s" : "") : "sin equipos"; $("midiHint").textContent = n ? "Presiona Asignar." : "No hay controladores conectados. Enchufa uno y vuelve a intentar."; };
+      access.onstatechange = bind; bind();
+      $("midiBtn").setAttribute("aria-pressed", "true"); $("learnBtn").disabled = false; $("midiClear").disabled = false;
+    } catch (e) { $("midiHint").textContent = "MIDI no disponible en esta vista. Abre la versión local en Chrome o Edge."; }
+  });
+  $("learnBtn").addEventListener("click", () => {
+    learning = !learning; $("learnBtn").setAttribute("aria-pressed", String(learning));
+    $("dock").classList.toggle("learning", learning);
+    if (learnTarget) { learnTarget.classList.remove("target"); learnTarget = null; }
+    $("midiHint").textContent = learning ? "Abre otro panel, toca un slider y mueve una perilla." : "Asignaciones guardadas en este navegador.";
+  });
+  document.querySelectorAll("input[type=range]").forEach((el) => el.addEventListener("pointerdown", () => {
+    if (!learning) return;
+    if (learnTarget) learnTarget.classList.remove("target");
+    learnTarget = el; el.classList.add("target");
+    $("midiHint").textContent = "Mueve una perilla para asignarla a " + el.id + ".";
+  }));
+  $("midiClear").addEventListener("click", () => { midiMap = {}; saveMap(); paintBadges(); $("midiHint").textContent = "Asignaciones borradas."; });
+
+  // ================= bucle =================
+  let lastT = performance.now(), acc = 0;
+  let frame = 0;
+  function loop(now) {
+    const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+    if (S.src === "demo") drawDemo(dt);
+    acc += dt;
+    if (acc >= 1 / 15) { acc = 0; analyse(now); }
+    if (S.mode === "escaner") scanTick(now);
+    drawView(dt);
+    if ((frame++ & 1) === 0) { drawScope(); drawEnv(); drawRoll(now); }   // v05: la ventana Señal a 30 cuadros/s
+    if (frame % 6 === 0) renderScales();                                  // v06: monitor de escalas, 10 veces por segundo
+    if (recording) { const s = Math.floor((now - recStart) / 1000), t = Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); $("recTime").textContent = t; $("recBadgeT").textContent = t; }
+    requestAnimationFrame(loop);
+  }
+  updSoundBtn(); drawDemo(0); loadFaceModels();
+  requestAnimationFrame(loop);
+})();
