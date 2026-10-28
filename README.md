@@ -58,6 +58,16 @@ El sistema integrará la herramienta OpenCV, y esta identificará:
 
 ## README estructura
 - Concepto y relación imagen–sonido. ¿Qué relación propones y por qué? ¿Es de semejanza, de contraste o de traducción? ¿Qué quieres que la persona escuche que antes no escuchaba?
+
+Espectro según Wikipedia es "una condición que no se limita a un conjunto específico de valores, sino que puede variar, sin pasos, a través de un continuo".
+Este concepto no se mantuvo exclusivo de la ciencia física. A lo largo de los siglos se ha ido integrando a distintas áreas disciplinares, como las ciencias sociales, ciencias políticas, entre muchas otras más.
+
+El espectro visible para el humano se encuentra entre los 380 y los 750 nanómetros (nm) de longitud de onda.
+
+El espectro que percibe un oído humano está ubicado entre los 20 Hz y los 20 000 Hz (20 kHz)
+
+Y en el ámbito de la psicología, ------
+
 - Banco de sonidos y disparador. Qué sonidos usaste, de dónde vienen y cómo los elegiste o grabaste. Qué fenómeno de la imagen los dispara y con qué regla (el mapping). Incluye una tabla con los sonidos, su autor y su licencia.
 - Parámetros y gráfica. Qué parámetros del sonido se pueden modificar y por qué esos y no otros. Qué decisiones gráficas tomaste (tipografía, color, visualización) y cómo se relacionan con el concepto. Incluye dos o tres capturas.
 - Reflexión. ¿Qué descubriste al traducir imagen en sonido? ¿Qué queda fuera de la escucha de tu sistema? Propón al menos dos mejoras concretas para tu plataforma.
