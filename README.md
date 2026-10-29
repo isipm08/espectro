@@ -6,8 +6,6 @@
 
 ## Espectro
 - Concepto y relación imagen–sonido. ¿Qué relación propones y por qué? ¿Es de semejanza, de contraste o de traducción? ¿Qué quieres que la persona escuche que antes no escuchaba?
-
-RELLENAR MÁS
   
 Espectro según Wikipedia es "una condición que no se limita a un conjunto específico de valores, sino que puede variar, sin pasos, a través de un continuo".
 Este concepto no se mantuvo exclusivo de la ciencia física. A lo largo de los siglos se ha ido integrando a distintas áreas disciplinares, como las ciencias sociales, ciencias políticas, entre muchas otras más.
@@ -31,6 +29,8 @@ Trabajamos con 3 espectros, los cuales son:
 ### Banco sonidos
 Banco de sonidos y disparador. Qué sonidos usaste, de dónde vienen y cómo los elegiste o grabaste. Qué fenómeno de la imagen los dispara y con qué regla (el mapping). Incluye una tabla con los sonidos, su autor y su licencia.
 
+**PONER MÁS INFO SOBRE ESTO**
+
 ### Funcionamiento
 1. Realizar la carga de video o activar cámara.
 2. El detector de forma automática hace el reconocimiento de rostros, en donde se clasifican según expresión facial: neutral, alegría, tristeza, enojo, miedo, asco y sorpresa.
@@ -38,9 +38,9 @@ Banco de sonidos y disparador. Qué sonidos usaste, de dónde vienen y cómo los
 4. El escáner recorre la imagen de izquierda a derecha o también se posiciona de forma manual, donde dispara notas.
    
 ### Parámetros
-- Parámetros y gráfica. Qué parámetros del sonido se pueden modificar y por qué esos y no otros. Qué decisiones gráficas tomaste (tipografía, color, visualización) y cómo se relacionan con el concepto. Incluye dos o tres capturas.
+- Parámetros y gráfica. Qué parámetros del sonido se pueden modificar y por qué esos y no otros. 
 
-RELLENAR MÁS 
+**VER ESTO Y MODIFICAR TABLA**
 
 | Sonido / emoción | Color en pantalla | Escala asignada | Timbre sintetizado | Autor de la receta y licencia |
 |---|---|---|---|---|
@@ -53,9 +53,22 @@ RELLENAR MÁS
 | Sorpresa | Cian `#5CE1E6` | Tonos enteros | Senoidal AM | Laboratorio de Sonido / equipo del proyecto; autoría individual y licencia por confirmar |
 
 ### Activación
+Se utilizan diferentes aspectos para poder generar la activación del sonido tales como:
+
+```Rostro``` la expresión de este y la emoción que se genera es la que asigna la escala y el timbre, donde el grado musical es el que avanza dentro de esa escala.
+
+```Escáner``` se colorean las zonas de los rostros, donde se dispara una nota
 
 ### Decisiones gráficas
-- Parámetros y gráfica. Qué parámetros del sonido se pueden modificar y por qué esos y no otros. Qué decisiones gráficas tomaste (tipografía, color, visualización) y cómo se relacionan con el concepto. Incluye dos o tres capturas.
+- Qué decisiones gráficas tomaste (tipografía, color, visualización) y cómo se relacionan con el concepto. Incluye dos o tres capturas.
+
+El nombre de nuestro proyecto se debe a diferentes conceptos que fuimos rescatando al momento de nuestra propuesta y proceso, donde queríamos representar las diferentes funciones que se capturan en nuestra interfaz, ya sea las emociones de las personas que luego son representadas en color y finalizando con lo sonoro. Donde todos estos aspectos se abarcaban en este concepto llamado ```Espectro```. **METERLE MÁS CHAMULLO**
+
+El fondo de nuestra interfaz utiliza un tipo de gradiente, de una paleta compartida de rosados, lilas, naranjos y amarillos con leve textura.
+
+```Espectro``` aparece en la tipografía llamada Instrument Serif cursiva y la interfaz a modo de textos generales y botones utiliza la tipografía llamada Libre Franklin Medium.
+
+La diagramación de nuestra interfaz esta pensado con botones visibles tanto en la parte superior como inferior, los cuales representan funciones necesarias, como activar sonido, opción de video o cámara y también de poder pausar o darle play a este. Además tenemos los encuadres y las emociones, mostrando de forma gráfica lo que se está presentando en la visualización. Por último quisimos darle mayor énfasis a punto 05.Señal, el cual es de suma importancia para ir visualizando los datos que se nos van presentando tanto al activar cámara como al insertar un video.
 
 ### Reflexión
 - Reflexión. ¿Qué descubriste al traducir imagen en sonido? ¿Qué queda fuera de la escucha de tu sistema? Propón al menos dos mejoras concretas para tu plataforma.
@@ -75,12 +88,6 @@ RELLENAR MÁS
 - cuanta cantidad de algo hay y se modifique un tono
 - quizá uno es el tono y algunos son efectos, envolventes
 - no poder controlar lo que sale
-
-```
-recuerdos -- personas -- 
-según cantidad personas
-según personas
-```
 
 ## Qué vamos a mantener de *Oír la luz*:
 - pantalla completa
