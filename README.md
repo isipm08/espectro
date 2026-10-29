@@ -24,6 +24,8 @@ Trabajamos con 3 espectros, los cuales son:
 
 El "banco de sonidos" en realidad es una herramienta que entrega osciladores, envolventes, filtros, eco y reverb, llamada Tone.js, creando una composición distinta de cada sonido asociado a cada emoción. La mayoría de los parámetros que alteran la onda no son controlables manualmente, esto debido a que son las propias emociones identificadas que modifican el sonido.
 
+```Tone.js``` es el motor en nuestro proyecto que es capaz de convertir las detecciones del sistema en sonido, generando las notas en tiempo real mediante síntesis. Además de generar estas notas, también es capaz de controlar características del sonido, como lo son la duración, volumen, timbre, filtro, delay.
+
 Los fenómenos de la imagen que gatillan el sonido son dos:
 
 1. Al contar con dos modos, el primer disparador "rostros", al momento de identificar la emoción produce el sonido asociado a esta.
@@ -37,7 +39,7 @@ Los fenómenos de la imagen que gatillan el sonido son dos:
 4. El escáner recorre la imagen de izquierda a derecha o también se posiciona de forma manual, donde dispara notas.
    
 ### Parámetros
-- Parámetros y gráfica. Qué parámetros del sonido se pueden modificar y por qué esos y no otros. 
+> Parámetros y gráfica. Qué parámetros del sonido se pueden modificar y por qué esos y no otros. 
 
 | Sonido / emoción | Color en pantalla | Escala asignada | Timbre sintetizado | Autor de la receta y licencia |
 |---|---|---|---|---|
@@ -50,6 +52,8 @@ Los fenómenos de la imagen que gatillan el sonido son dos:
 | Sorpresa | Cian `#5CE1E6` | Tonos enteros | Senoidal AM | Isidora Pérez y Dayana Pañitrur · sintetizado con Tone.js (MIT) · Licencia: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.es) |
 | Murmullo (cantidad de personas) | — | — | Ruido rosa filtrado (pasa-banda 700 Hz) | Isidora Pérez y Dayana Pañitrur · sintetizado con Tone.js (MIT) · Licencia: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.es) |
 
+La detección de rostros y el reconocimiento facial es realizado por ```face-api.js```, la cual analiza los encuadres del video o cámara y entrega las expresiones, para luego ser traducidas a un color y sonido predeterminado.
+
 ### Activación
 Se utilizan diferentes aspectos para poder generar la activación del sonido tales como:
 
@@ -58,7 +62,7 @@ Se utilizan diferentes aspectos para poder generar la activación del sonido tal
 ```Escáner``` se colorean las zonas de los rostros, donde se dispara una nota
 
 ### Decisiones gráficas
-- Qué decisiones gráficas tomaste (tipografía, color, visualización) y cómo se relacionan con el concepto. Incluye dos o tres capturas.
+> Qué decisiones gráficas tomaste (tipografía, color, visualización) y cómo se relacionan con el concepto. Incluye dos o tres capturas.
 
 El nombre de nuestro proyecto se debe a diferentes conceptos que fuimos rescatando al momento de nuestra propuesta y proceso, donde queríamos representar las diferentes funciones que se capturan en nuestra interfaz, ya sea las emociones de las personas que luego son representadas en color y finalizando con lo sonoro. Donde todos estos aspectos se abarcaban en este concepto llamado ```Espectro```, el cuál busca representar la manera en la que el sistema navega en tiempo real por estos tres tipos de espectros distintos que se alimentan entre sí, a medida que las personas se mueven, cambian de expresión o aumenta la cantidad de rostros en la pantalla, los colores y los sonidos mutan.
 
@@ -69,7 +73,7 @@ El fondo de nuestra interfaz utiliza un tipo de gradiente, de una paleta compart
 La diagramación de nuestra interfaz esta pensado con botones visibles tanto en la parte superior como inferior, los cuales representan funciones necesarias, como activar sonido, opción de video o cámara y también de poder pausar o darle play a este. Además tenemos los encuadres y las emociones, mostrando de forma gráfica lo que se está presentando en la visualización. Por último quisimos darle mayor énfasis a punto 05.Señal, el cual es de suma importancia para ir visualizando los datos que se nos van presentando tanto al activar cámara como al insertar un video.
 
 ### Reflexión
-- Reflexión. ¿Qué descubriste al traducir imagen en sonido? ¿Qué queda fuera de la escucha de tu sistema? Propón al menos dos mejoras concretas para tu plataforma.
+> Reflexión. ¿Qué descubriste al traducir imagen en sonido? ¿Qué queda fuera de la escucha de tu sistema? Propón al menos dos mejoras concretas para tu plataforma.
 
 Espectro según Wikipedia es "una condición que no se limita a un conjunto específico de valores, sino que puede variar, sin pasos, a través de un continuo".
 Este concepto no se mantuvo exclusivo de la ciencia física. A lo largo de los siglos se ha ido integrando a distintas áreas disciplinares, como las ciencias sociales, ciencias políticas, entre muchas otras más.
@@ -80,65 +84,13 @@ El espectro que percibe un oído humano está ubicado entre los 20 Hz y los 20 0
 
 Y en el ámbito de la psicología el espectro emocional abarca una gama amplia de aspectos relacionados a las experiencias afectivas, que van más allá de entender las emociones de forma ambigua como lo "bueno" y lo "malo".
 
+Al desarrollar nuestro proyecto Espectro, descubrimos que una imagen puede escucharse de muchas maneras. El sistema traduce las expresiones faciales que detecta en colores, escalas y sonidos, haciendo perceptibles algunos patrones que normalmente solo vemos. Así, el rostro deja de ser únicamente una imagen: se convierte en una composición sonora que cambia mientras el video avanza o la cámara reconoce expresiones.
+
+Este proceso también nos hizo notar que la traducción nunca es completa ni neutral. El sistema reconoce un conjunto limitado de expresiones y las interpreta según un modelo; no puede saber con certeza qué siente una persona. La iluminación, el ángulo, la calidad del video y las diferencias entre rostros pueden cambiar el resultado. Por eso, el sonido representa lo que el sistema detecta, no necesariamente la emoción real de quien aparece.
+
+Como mejoras, nos gustaría mostrar cuánta confianza tiene el sistema en cada detección y permitir que las personas ajusten cómo se relacionan las emociones con los sonidos. También sería valioso probar la plataforma con rostros diversos y distintas condiciones de grabación para entender mejor sus límites y hacerla más inclusiva.
 
 
 
 
 
-
-- entender el sonido como una traducción del diseño
-- qué fenómeno escuchamos
-- con qué sonido lo representamos y la relación entre ambos > emociones
-- elegir concepto: relación imagen-sonido
-- banco sonidos: 5-15 sonidos
-- disparador visual: definir fenómeno de la imagen que hace sonar / emitir sonidos > cantidad personas
-- parámetros: cuales cualidades del sonido se modifican y por qué
-- gráfica: nombre, tipografía, color, composición de la interfaz y forma de visualizar el sonido deben responder al concepto, como en una pieza de diseño completa.
-- publicarla en github pages
-- Jugar con una temática intima, como emociones y relación con las personas.
-- Por ejemplo: el metro, muchas personas, la incomodidad de no conocer a nadie, un ambiente de tensión.
-- open cv -- cargar imágenes y reconocer cosas
-- cuanta cantidad de algo hay y se modifique un tono
-- quizá uno es el tono y algunos son efectos, envolventes
-- no poder controlar lo que sale
-
-## Qué vamos a mantener de *Oír la luz*:
-- pantalla completa
-- activar sonido
-- modo disparo > escáner > funcione para video/ cámara > estirar video o poder manipularlo
-- sonido (mantener todo por ahora) -- se cambiará lo de las opciones de ondas 
-- teclas > nota base y escala
-- dejar como segunda función integrar la cámara en vivo y en directo, dejar primera opción la integración de videos pre grabados (fuente)
-- modo disparo > escaner > cantidad personas
-- grabar y descargar
-- señal (dejarlo visible en la parte de arriba) qué pasa con tu video > dejar opción notas acá en forma de visualización (quizá nombrarlo monitor)
-
-## Qué vamos a quitar
-- visualización
-- detección
-- mapping
-- midi
-- teclas (quitar columnas y filas) se llamará escala
-- sacar parte inferior abajo (pero dejar "líneas)
-- sacar apartado ejemplo
-- dejar solo frecuencia en la parte inferior izquierda
-
-## Qué vamos a integrar en nuestra web:
-Que la plataforma se enfoque principalmente en identificar elementos en videos montados, con la intención de abordar a más profundidad.
-
-El sistema integrará la herramienta OpenCV, y esta identificará:
-- Integrar según cantidad personas > expresiones faciales > emociones > colores > pentatonicas
-- personas suman = alteran frecuencia en ciertos aspectos
-- emociones agregan sonido en escala
-- colores suman RGB, forma de onda 
-
-## Criterios de evaluación
-- Claridad y solidez del concepto.
-- Coherencia entre banco de sonidos, disparador y parámetros.
-- Calidad del diseño sonoro.
-- Gráfica aplicada a la plataforma.
-- Funcionamiento y publicación.
-- Profundidad del README y la reflexión.
-## Links
-<https://opencv.org/about/>
-<https://es.wikipedia.org/wiki/Espectro>
