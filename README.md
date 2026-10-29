@@ -72,6 +72,12 @@ El fondo de nuestra interfaz utiliza un tipo de gradiente, de una paleta compart
 
 La diagramación de nuestra interfaz esta pensado con botones visibles tanto en la parte superior como inferior, los cuales representan funciones necesarias, como activar sonido, opción de video o cámara y también de poder pausar o darle play a este. Además tenemos los encuadres y las emociones, mostrando de forma gráfica lo que se está presentando en la visualización. Por último quisimos darle mayor énfasis a punto 05.Señal, el cual es de suma importancia para ir visualizando los datos que se nos van presentando tanto al activar cámara como al insertar un video.
 
+| | |
+|---|---|
+| ![Pantalla de inicio de Espectro](imagenes/espectro-cap1.png) | **Inicio.** |
+| ![Modo Rostros con tres personas detectadas](imagenes/espectro-cap2.png) | **Modo Rostros.** |
+| ![Modo Escáner con su panel de ajustes](imagenes/espectro-cap3.png) | **Modo Escáner.** |
+
 ### Reflexión
 > Reflexión. ¿Qué descubriste al traducir imagen en sonido? ¿Qué queda fuera de la escucha de tu sistema? Propón al menos dos mejoras concretas para tu plataforma.
 
@@ -89,8 +95,3 @@ Al desarrollar nuestro proyecto Espectro, descubrimos que una imagen puede escuc
 Este proceso también nos hizo notar que la traducción nunca es completa ni neutral. El sistema reconoce un conjunto limitado de expresiones y las interpreta según un modelo; no puede saber con certeza qué siente una persona. La iluminación, el ángulo, la calidad del video y las diferencias entre rostros pueden cambiar el resultado. Por eso, el sonido representa lo que el sistema detecta, no necesariamente la emoción real de quien aparece.
 
 Como mejoras, nos gustaría mostrar cuánta confianza tiene el sistema en cada detección y permitir que las personas ajusten cómo se relacionan las emociones con los sonidos. También sería valioso probar la plataforma con rostros diversos y distintas condiciones de grabación para entender mejor sus límites y hacerla más inclusiva.
-
-
-
-
-
