@@ -39,17 +39,16 @@ Los fenómenos de la imagen que gatillan el sonido son dos:
 ### Parámetros
 - Parámetros y gráfica. Qué parámetros del sonido se pueden modificar y por qué esos y no otros. 
 
-**VER ESTO Y MODIFICAR TABLA**
-
 | Sonido / emoción | Color en pantalla | Escala asignada | Timbre sintetizado | Autor de la receta y licencia |
 |---|---|---|---|---|
-| Neutral | Blanco frío `#EEF0FF` | Pentatónica mayor | Onda personalizada con parciales | Laboratorio de Sonido / equipo del proyecto; autoría individual y licencia por confirmar |
-| Alegría | Lima `#E2FF3B` | Lidia | Onda personalizada rica en armónicos | Laboratorio de Sonido / equipo del proyecto; autoría individual y licencia por confirmar |
-| Tristeza | Azul `#6A8CFF` | Eólica | Senoidal | Laboratorio de Sonido / equipo del proyecto; autoría individual y licencia por confirmar |
-| Enojo | Coral `#FF4D6D` | Frigia | Diente de sierra | Laboratorio de Sonido / equipo del proyecto; autoría individual y licencia por confirmar |
-| Miedo | Violeta `#9A7BFF` | Octatónica | Senoidal FM | Laboratorio de Sonido / equipo del proyecto; autoría individual y licencia por confirmar |
-| Asco | Verde `#7BD88F` | Locria | Cuadrada | Laboratorio de Sonido / equipo del proyecto; autoría individual y licencia por confirmar |
-| Sorpresa | Cian `#5CE1E6` | Tonos enteros | Senoidal AM | Laboratorio de Sonido / equipo del proyecto; autoría individual y licencia por confirmar |
+| Neutral | Blanco frío `#EEF0FF` | Pentatónica mayor | Onda personalizada con parciales | Isidora Pérez y Dayana Pañitrur · sintetizado con Tone.js (MIT) · Licencia: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.es) |
+| Alegría | Lima `#E2FF3B` | Lidia | Onda personalizada rica en armónicos | Isidora Pérez y Dayana Pañitrur · sintetizado con Tone.js (MIT) · Licencia: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.es) |
+| Tristeza | Azul `#6A8CFF` | Eólica | Senoidal | Isidora Pérez y Dayana Pañitrur · sintetizado con Tone.js (MIT) · Licencia: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.es) |
+| Enojo | Coral `#FF4D6D` | Frigia | Diente de sierra gruesa (3 voces desafinadas) | Isidora Pérez y Dayana Pañitrur · sintetizado con Tone.js (MIT) · Licencia: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.es) |
+| Miedo | Violeta `#9A7BFF` | Octatónica | Senoidal FM con vibrato | Isidora Pérez y Dayana Pañitrur · sintetizado con Tone.js (MIT) · Licencia: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.es) |
+| Asco | Verde `#7BD88F` | Locria | Cuadrada | Isidora Pérez y Dayana Pañitrur · sintetizado con Tone.js (MIT) · Licencia: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.es) |
+| Sorpresa | Cian `#5CE1E6` | Tonos enteros | Senoidal AM | Isidora Pérez y Dayana Pañitrur · sintetizado con Tone.js (MIT) · Licencia: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.es) |
+| Murmullo (cantidad de personas) | — | — | Ruido rosa filtrado (pasa-banda 700 Hz) | Isidora Pérez y Dayana Pañitrur · sintetizado con Tone.js (MIT) · Licencia: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.es) |
 
 ### Activación
 Se utilizan diferentes aspectos para poder generar la activación del sonido tales como:
@@ -61,7 +60,7 @@ Se utilizan diferentes aspectos para poder generar la activación del sonido tal
 ### Decisiones gráficas
 - Qué decisiones gráficas tomaste (tipografía, color, visualización) y cómo se relacionan con el concepto. Incluye dos o tres capturas.
 
-El nombre de nuestro proyecto se debe a diferentes conceptos que fuimos rescatando al momento de nuestra propuesta y proceso, donde queríamos representar las diferentes funciones que se capturan en nuestra interfaz, ya sea las emociones de las personas que luego son representadas en color y finalizando con lo sonoro. Donde todos estos aspectos se abarcaban en este concepto llamado ```Espectro```. **METERLE MÁS CHAMULLO**
+El nombre de nuestro proyecto se debe a diferentes conceptos que fuimos rescatando al momento de nuestra propuesta y proceso, donde queríamos representar las diferentes funciones que se capturan en nuestra interfaz, ya sea las emociones de las personas que luego son representadas en color y finalizando con lo sonoro. Donde todos estos aspectos se abarcaban en este concepto llamado ```Espectro```, el cuál busca representar la manera en la que el sistema navega en tiempo real por estos tres tipos de espectros distintos que se alimentan entre sí, a medida que las personas se mueven, cambian de expresión o aumenta la cantidad de rostros en la pantalla, los colores y los sonidos mutan.
 
 El fondo de nuestra interfaz utiliza un tipo de gradiente, de una paleta compartida de rosados, lilas, naranjos y amarillos con leve textura.
 
