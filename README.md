@@ -5,31 +5,30 @@
 ☆ Dayana Pañitrur
 
 ## Espectro
-- Concepto y relación imagen–sonido. ¿Qué relación propones y por qué? ¿Es de semejanza, de contraste o de traducción? ¿Qué quieres que la persona escuche que antes no escuchaba?
-  
-Espectro según Wikipedia es "una condición que no se limita a un conjunto específico de valores, sino que puede variar, sin pasos, a través de un continuo".
-Este concepto no se mantuvo exclusivo de la ciencia física. A lo largo de los siglos se ha ido integrando a distintas áreas disciplinares, como las ciencias sociales, ciencias políticas, entre muchas otras más.
+> Concepto y relación imagen–sonido. ¿Qué relación propones y por qué? ¿Es de semejanza, de contraste o de traducción? ¿Qué quieres que la persona escuche que antes no escuchaba?
 
-El espectro visible para el humano se encuentra entre los 380 y los 750 nanómetros (nm) de longitud de onda.
-
-El espectro que percibe un oído humano está ubicado entre los 20 Hz y los 20 000 Hz (20 kHz)
-
-Y en el ámbito de la psicología, ------
+Establecemos la relación que tienen 3 elementos en conjunto, que tienen que ver con lo auditivo, lo visual y lo emocional, dentro de un mismo concepto: el espectro, rescatando la manera en que funcionan y cómo se interpretan todos por un mismo ente, en este caso el humano.
 
 Nuestro proyecto es capaz de convertir la expresión facial visible en una composición visual en tiempo real. La relación imagen-sonido es una traducción simbólica, la cual una emoción es transformada en color y luego a un sonido representativo de tal emoción. 
 
 Trabajamos con 3 espectros, los cuales son:
 
-```Espectro visible``` rostro recibe color asociado a la emoción la cual estima el sistema
+```Espectro emocional``` el sistema es capaz de reconocer las emociones de los rostros que identifica, ya sea en el video o en la cámara
 
-```Espectro sonoro``` se define la escala, registro, timbre, ritmo y efectos, donde las notas se sintetizan en el momento
+```Espectro visible``` los colores presentes en la visualización, los cuáles son asociados cada uno a una emoción estimada por el sistema
 
-```Espectro visual``` el monitor es capaz de mostrar las formas de onda, armónicos y envolventes mediante la emoción, donde el sonido se vuelve visible
+```Espectro sonoro``` se define la escala, registro, timbre, ritmo y efectos, donde las notas se sintetizan en el momento, y que solo son controlables por los espectros anteriores
 
 ### Banco sonidos
-Banco de sonidos y disparador. Qué sonidos usaste, de dónde vienen y cómo los elegiste o grabaste. Qué fenómeno de la imagen los dispara y con qué regla (el mapping). Incluye una tabla con los sonidos, su autor y su licencia.
+> Banco de sonidos y disparador. Qué sonidos usaste, de dónde vienen y cómo los elegiste o grabaste. Qué fenómeno de la imagen los dispara y con qué regla (el mapping). Incluye una tabla con los sonidos, su autor y su licencia.
 
-**PONER MÁS INFO SOBRE ESTO**
+El "banco de sonidos" en realidad es una herramienta que entrega osciladores, envolventes, filtros, eco y reverb, llamada Tone.js, creando una composición distinta de cada sonido asociado a cada emoción. La mayoría de los parámetros que alteran la onda no son controlables manualmente, esto debido a que son las propias emociones identificadas que modifican el sonido.
+
+Los fenómenos de la imagen que gatillan el sonido son dos:
+
+1. Al contar con dos modos, el primer disparador "rostros", al momento de identificar la emoción produce el sonido asociado a esta.
+
+2. El escáner necesita del modo "rostros" para saber en qué escala (emoción) emitirá el sonido, por cada lugar en la imagen que tenga el color asociado a esa emoción el escaner las reproducirá a medida que recorre el ancho del video.
 
 ### Funcionamiento
 1. Realizar la carga de video o activar cámara.
@@ -72,6 +71,21 @@ La diagramación de nuestra interfaz esta pensado con botones visibles tanto en 
 
 ### Reflexión
 - Reflexión. ¿Qué descubriste al traducir imagen en sonido? ¿Qué queda fuera de la escucha de tu sistema? Propón al menos dos mejoras concretas para tu plataforma.
+
+Espectro según Wikipedia es "una condición que no se limita a un conjunto específico de valores, sino que puede variar, sin pasos, a través de un continuo".
+Este concepto no se mantuvo exclusivo de la ciencia física. A lo largo de los siglos se ha ido integrando a distintas áreas disciplinares, como las ciencias sociales, ciencias políticas, entre muchas otras más.
+
+El espectro visible para el humano se encuentra entre los 380 y los 750 nanómetros (nm) de longitud de onda.
+
+El espectro que percibe un oído humano está ubicado entre los 20 Hz y los 20 000 Hz (20 kHz)
+
+Y en el ámbito de la psicología el espectro emocional abarca una gama amplia de aspectos relacionados a las experiencias afectivas, que van más allá de entender las emociones de forma ambigua como lo "bueno" y lo "malo".
+
+
+
+
+
+
 
 - entender el sonido como una traducción del diseño
 - qué fenómeno escuchamos
@@ -118,8 +132,6 @@ El sistema integrará la herramienta OpenCV, y esta identificará:
 - personas suman = alteran frecuencia en ciertos aspectos
 - emociones agregan sonido en escala
 - colores suman RGB, forma de onda 
-
-
 
 ## Criterios de evaluación
 - Claridad y solidez del concepto.
